@@ -9,6 +9,8 @@ import torch.nn as nn
 from torch import optim
 import torch.nn.functional as F
 
+from model.net import EncoderRNN, DecoderRNN
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', default='0', type=str)
 args = parser.parse_args()
@@ -110,43 +112,6 @@ input_lang, output_lang, pairs = prepare_data('eng', 'fra', reverse=True)
 print(random.choice(pairs))
 
 
-class EncoderRNN(nn.Module):
-    def __init__(self, input_vocabulary_size, hidden_size):
-        super().__init__()
-        self.hidden_size = hidden_size
-        self.embedding = nn.Embedding(input_vocabulary_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size)
-
-    def forward(self, input, hidden):
-        embeded = self.embedding(input).view(1, 1, -1)
-        output = embeded
-        output, hidden = self.gru(output, hidden)
-        return output, hidden
-
-    def init_hidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=device)
-
-
-class DecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_vocabulary_size):
-        super().__init__()
-        self.hidden_size = hidden_size
-        self.embedding = nn.Embedding(output_vocabulary_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size)
-        self.out = nn.Linear(hidden_size, output_vocabulary_size)
-        self.softmax = nn.LogSoftmax(dim=1)
-
-    def forward(self, input, hidden):
-        output = self.embedding(input).view(1, 1, -1)
-        output = F.relu(output)
-        output, hidden = self.gru(output, hidden)
-        output = self.softmax(self.out(output[0]))
-        return output, hidden
-
-    def init_hidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=device)
-
-
 def indexes_from_sentence(lang: Language, sentence: str):
     return [lang.word2index[word] for word in sentence.split(' ')]
 
@@ -168,7 +133,7 @@ teacher_forcing_ratio = 0.5
 
 def train(input_tensor, target_tensor, encoder: EncoderRNN, decoder: DecoderRNN, encoder_optimizer: optim.Optimizer,
           decoder_optimizer: optim.Optimizer, criterion, max_length=MAX_LENGTH):
-    encoder_hidden = encoder.init_hidden()
+    encoder_hidden = encoder.init_hidden(device)
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
 
@@ -285,7 +250,7 @@ def evaluate(encoder: EncoderRNN, decoder: DecoderRNN, sentence, max_length=MAX_
     with torch.no_grad():
         input_tensor = tensor_from_sentence(input_lang, sentence)
         input_length = input_tensor.size()[0]
-        encoder_hidden = encoder.init_hidden()
+        encoder_hidden = encoder.init_hidden(device)
 
         encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 
