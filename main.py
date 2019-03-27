@@ -15,7 +15,6 @@ args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 SOS_token = 0
@@ -211,30 +210,29 @@ def train(input_tensor, target_tensor, encoder: EncoderRNN, decoder: DecoderRNN,
     return loss.item() / target_length
 
 
-import time
-import math
+from tqdm import tqdm
 
 
-def as_minutes(s):
-    m = math.floor(s / 60)
-    s -= m * 60
-    return '{}m {}s'.format(m, s)
+class RunningAverage:
+    def __init__(self):
+        self.counts = 0
+        self.total_sum = 0
+        self.avg = 0
 
+    def reset(self):
+        self.counts = 0
+        self.total_sum = 0
 
-def time_since(since, percent):
-    now = time.time()
-    s = now - since
-    es = s / percent
-    res = es - s
-    return '{}s (- {})'.format(as_minutes(s), as_minutes(res))
+    def update(self, val):
+        self.total_sum += val
+        self.counts += 1
+        self.avg = self.total_sum / self.counts
 
 
 def train_iters(encoder: EncoderRNN, decoder: DecoderRNN,
                 n_iters, print_every=1000, plot_every=100, learning_rate=0.01):
-    start = time.time()
-    plot_losses = []
-    print_loss_total = 0
-    plot_loss_total = 0
+    loss_avg = RunningAverage()
+    current_best_loss = 1e3
 
     encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
     decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
@@ -243,41 +241,36 @@ def train_iters(encoder: EncoderRNN, decoder: DecoderRNN,
 
     criterion = nn.NLLLoss()
 
-    for iter in range(1, n_iters + 1):
-        training_pair = training_pairs[iter - 1]
-        input_tensor = training_pair[0]
-        target_tensor = training_pair[1]
+    with tqdm(total=n_iters) as progress_bar:
+        for iter in range(1, n_iters + 1):
+            training_pair = training_pairs[iter - 1]
+            input_tensor = training_pair[0]
+            target_tensor = training_pair[1]
 
-        loss = train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion)
-        print_loss_total += loss
-        plot_loss_total += loss
+            loss = train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, decoder_optimizer, criterion)
+            loss_avg.update(loss)
 
-        if iter % print_every == 0:
-            print_loss_avg = print_loss_total / print_every
-            print_loss_total = 0
-            print('{} ({} {}%) {}'.format(time_since(start, iter / n_iters), iter, iter / n_iters * 100,
-                                             print_loss_avg))
-        if iter % plot_every == 0:
-            plot_loss_avg = plot_loss_total / plot_every
-            plot_losses.append(plot_loss_avg)
-            plot_loss_total = 0
+            if iter % print_every == 0:
+                tqdm.write('# of iterations: {}, loss average: {:.3f}'.format(iter, loss_avg.avg))
+                if loss_avg.avg < current_best_loss:
+                    tqdm.write('new best loss average found, saving model...')
+                    current_best_loss = loss_avg.avg
+                    state = {
+                        'encoder': encoder.state_dict(),
+                        'decoder': decoder.state_dict(),
+                        'iters': iter
+                    }
+                    os.makedirs('./ckpts', exist_ok=True)
+                    torch.save(state, './ckpts/best.pth.tar')
+                loss_avg.reset()
+            # if iter % plot_every == 0:
+            #     plot_loss_avg = plot_loss_total / plot_every
+            #     plot_losses.append(plot_loss_avg)
+            #     plot_loss_total = 0
 
-        show_plot(plot_losses)
-
-
-import matplotlib.pyplot as plt
-
-plt.switch_backend('agg')
-import matplotlib.ticker as ticker
-import numpy as np
-
-
-def show_plot(points):
-    plt.figure()
-    fig, ax = plt.subplots()
-    loc = ticker.MultipleLocator(base=0.2)
-    ax.yaxis.set_major_locator(loc)
-    plt.plot(points)
+            # show_plot(plot_losses)
+            progress_bar.set_postfix(loss_avg=loss_avg.avg)
+            progress_bar.update()
 
 
 hidden_size = 256
