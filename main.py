@@ -9,6 +9,7 @@ from tqdm import tqdm
 from utils import RunningAverage
 from model.net import EncoderRNN, DecoderRNN
 from build_dataset import prepare_data, EOS_token, SOS_token, MAX_LENGTH
+from utils import tensor_from_sentence
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', default='0', type=str)
@@ -20,8 +21,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 input_lang, output_lang, pairs = prepare_data('eng', 'fra', reverse=True)
 print(random.choice(pairs))
-
-from utils import tensor_from_sentence
 
 
 def tensor_from_pair(pair):
@@ -41,8 +40,6 @@ def train(input_tensor, target_tensor, encoder: EncoderRNN, decoder: DecoderRNN,
 
     input_length = input_tensor.size(0)
     target_length = target_tensor.size(0)
-
-    encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 
     loss = 0
 
