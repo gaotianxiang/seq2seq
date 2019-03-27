@@ -32,8 +32,14 @@ def tensor_from_pair(pair):
 teacher_forcing_ratio = 0.5
 
 
-def train(input_tensor, target_tensor, encoder: EncoderRNN, decoder: DecoderRNN, encoder_optimizer: optim.Optimizer,
-          decoder_optimizer: optim.Optimizer, criterion, max_length=MAX_LENGTH):
+def train(input_tensor,
+          target_tensor,
+          encoder: EncoderRNN,
+          decoder: DecoderRNN,
+          encoder_optimizer: optim.Optimizer,
+          decoder_optimizer: optim.Optimizer,
+          criterion, max_length=MAX_LENGTH):
+
     encoder_hidden = encoder.init_hidden(device)
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
@@ -74,15 +80,19 @@ def train(input_tensor, target_tensor, encoder: EncoderRNN, decoder: DecoderRNN,
     return loss.item() / target_length
 
 
-def train_iters(encoder: EncoderRNN, decoder: DecoderRNN,
-                n_iters, print_every=1000, plot_every=100, learning_rate=0.01):
+def train_iters(encoder: EncoderRNN,
+                decoder: DecoderRNN,
+                n_iters,
+                print_every=1000,
+                learning_rate=0.01):
+
     loss_avg = RunningAverage()
     current_best_loss = 1e3
 
     encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
     decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
 
-    training_pairs = [tensor_from_pair(random.choice(pairs)) for i in range(n_iters)]
+    training_pairs = [tensor_from_pair(random.choice(pairs)) for _ in range(n_iters)]
 
     criterion = nn.NLLLoss()
 
@@ -108,18 +118,14 @@ def train_iters(encoder: EncoderRNN, decoder: DecoderRNN,
                     os.makedirs('./ckpts', exist_ok=True)
                     torch.save(state, './ckpts/best.pth.tar')
                 loss_avg.reset()
-            # if iter % plot_every == 0:
-            #     plot_loss_avg = plot_loss_total / plot_every
-            #     plot_losses.append(plot_loss_avg)
-            #     plot_loss_total = 0
 
-            # show_plot(plot_losses)
             progress_bar.set_postfix(loss_avg=loss_avg.avg)
             progress_bar.update()
 
 
-hidden_size = 256
-encoder1 = EncoderRNN(input_lang.n_words, hidden_size).to(device)
-decoder1 = DecoderRNN(hidden_size, output_lang.n_words).to(device)
+if __name__ == '__main__':
+    hidden_size = 256
+    encoder1 = EncoderRNN(input_lang.n_words, hidden_size).to(device)
+    decoder1 = DecoderRNN(hidden_size, output_lang.n_words).to(device)
 
-train_iters(encoder1, decoder1, 75000, print_every=100)
+    train_iters(encoder1, decoder1, 75000, print_every=100)
