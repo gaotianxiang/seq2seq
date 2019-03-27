@@ -112,10 +112,10 @@ print(random.choice(pairs))
 
 
 class EncoderRNN(nn.Module):
-    def __init__(self, vocabulary_size, hidden_size):
+    def __init__(self, input_vocabulary_size, hidden_size):
         super().__init__()
         self.hidden_size = hidden_size
-        self.embedding = nn.Embedding(vocabulary_size, hidden_size)
+        self.embedding = nn.Embedding(input_vocabulary_size, hidden_size)
         self.gru = nn.GRU(hidden_size, hidden_size)
 
     def forward(self, input, hidden):
@@ -129,12 +129,12 @@ class EncoderRNN(nn.Module):
 
 
 class DecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_size):
+    def __init__(self, hidden_size, output_vocabulary_size):
         super().__init__()
         self.hidden_size = hidden_size
-        self.embedding = nn.Embedding(output_size, hidden_size)
+        self.embedding = nn.Embedding(output_vocabulary_size, hidden_size)
         self.gru = nn.GRU(hidden_size, hidden_size)
-        self.out = nn.Linear(hidden_size, output_size)
+        self.out = nn.Linear(hidden_size, output_vocabulary_size)
         self.softmax = nn.LogSoftmax(dim=1)
 
     def forward(self, input, hidden):
@@ -161,7 +161,7 @@ def tensor_from_sentence(lang: Language, sentence: str):
 def tensor_from_pair(pair):
     input_tensor = tensor_from_sentence(input_lang, pair[0])
     output_tensor = tensor_from_sentence(output_lang, pair[1])
-    return (input_tensor, output_tensor)
+    return input_tensor, output_tensor
 
 
 teacher_forcing_ratio = 0.5
