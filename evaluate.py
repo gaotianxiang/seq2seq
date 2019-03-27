@@ -3,7 +3,7 @@ import random
 
 from model.net import EncoderRNN, DecoderRNN
 from build_dataset import MAX_LENGTH, SOS_token, EOS_token
-from main import tensor_from_sentence, input_lang, device, output_lang, pairs, encoder1, decoder1
+from main import tensor_from_sentence, input_lang, device, output_lang, pairs
 
 
 def evaluate(encoder: EncoderRNN, decoder: DecoderRNN, sentence, max_length=MAX_LENGTH):
@@ -11,8 +11,6 @@ def evaluate(encoder: EncoderRNN, decoder: DecoderRNN, sentence, max_length=MAX_
         input_tensor = tensor_from_sentence(input_lang, sentence)
         input_length = input_tensor.size()[0]
         encoder_hidden = encoder.init_hidden(device)
-
-        encoder_outputs = torch.zeros(max_length, encoder.hidden_size, device=device)
 
         for ei in range(input_length):
             encoder_output, encoder_hidden = encoder(input_tensor[ei], encoder_hidden)
@@ -47,9 +45,13 @@ def evaluate_randomly(encoder: EncoderRNN, deocder: DecoderRNN, n=10):
         print('')
 
 
-print('loading model...')
-state = torch.load('./ckpts/best.pth.tar', map_location='cpu')
-encoder1.load_state_dict(state['encoder'])
-decoder1.load_state_dict(state['decoder'])
-print('model loaded, start translating...')
-evaluate_randomly(encoder1, decoder1)
+if __name__ == '__main__':
+    hidden_size = 256
+    encoder = EncoderRNN(input_lang.n_words, hidden_size).to(device)
+    decoder = DecoderRNN(hidden_size, output_lang.n_words).to(device)
+    print('loading model...')
+    state = torch.load('./ckpts/best.pth.tar')
+    encoder.load_state_dict(state['encoder'])
+    decoder.load_state_dict(state['decoder'])
+    print('model loaded, start translating...')
+    evaluate_randomly(encoder, decoder)
