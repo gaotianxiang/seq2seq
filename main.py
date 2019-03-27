@@ -8,7 +8,8 @@ import torch
 import torch.nn as nn
 from torch import optim
 import torch.nn.functional as F
-
+from tqdm import tqdm
+from utils import RunningAverage
 from model.net import EncoderRNN, DecoderRNN
 
 parser = argparse.ArgumentParser()
@@ -173,25 +174,6 @@ def train(input_tensor, target_tensor, encoder: EncoderRNN, decoder: DecoderRNN,
     decoder_optimizer.step()
 
     return loss.item() / target_length
-
-
-from tqdm import tqdm
-
-
-class RunningAverage:
-    def __init__(self):
-        self.counts = 0
-        self.total_sum = 0
-        self.avg = 0
-
-    def reset(self):
-        self.counts = 0
-        self.total_sum = 0
-
-    def update(self, val):
-        self.total_sum += val
-        self.counts += 1
-        self.avg = self.total_sum / self.counts
 
 
 def train_iters(encoder: EncoderRNN, decoder: DecoderRNN,
