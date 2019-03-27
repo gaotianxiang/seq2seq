@@ -3,12 +3,15 @@ import random
 
 from model.net import EncoderRNN, DecoderRNN
 from build_dataset import MAX_LENGTH, SOS_token, EOS_token
-from main import tensor_from_sentence, input_lang, device, output_lang, pairs
+from build_dataset import prepare_data
+from utils import tensor_from_sentence
+
+input_lang, output_lang, pairs = prepare_data('eng', 'fra', reverse=True)
 
 
-def evaluate(encoder: EncoderRNN, decoder: DecoderRNN, sentence, max_length=MAX_LENGTH):
+def evaluate(encoder: EncoderRNN, decoder: DecoderRNN, sentence, device, max_length=MAX_LENGTH):
     with torch.no_grad():
-        input_tensor = tensor_from_sentence(input_lang, sentence)
+        input_tensor = tensor_from_sentence(input_lang, sentence, device)
         input_length = input_tensor.size()[0]
         encoder_hidden = encoder.init_hidden(device)
 
@@ -34,18 +37,19 @@ def evaluate(encoder: EncoderRNN, decoder: DecoderRNN, sentence, max_length=MAX_
         return decoded_words
 
 
-def evaluate_randomly(encoder: EncoderRNN, deocder: DecoderRNN, n=10):
+def evaluate_randomly(encoder: EncoderRNN, deocder: DecoderRNN, device, n=10):
     for i in range(n):
         pair = random.choice(pairs)
         print('>', pair[0])
         print('=', pair[1])
-        output_words = evaluate(encoder, deocder, pair[0])
+        output_words = evaluate(encoder, deocder, pair[0], device)
         output_sentence = ' '.join(output_words)
         print('<', output_sentence)
         print('')
 
 
 if __name__ == '__main__':
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     hidden_size = 256
     encoder = EncoderRNN(input_lang.n_words, hidden_size).to(device)
     decoder = DecoderRNN(hidden_size, output_lang.n_words).to(device)
@@ -54,4 +58,4 @@ if __name__ == '__main__':
     encoder.load_state_dict(state['encoder'])
     decoder.load_state_dict(state['decoder'])
     print('model loaded, start translating...')
-    evaluate_randomly(encoder, decoder)
+    evaluate_randomly(encoder, decoder, device)

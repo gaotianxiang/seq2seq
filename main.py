@@ -8,7 +8,7 @@ from torch import optim
 from tqdm import tqdm
 from utils import RunningAverage
 from model.net import EncoderRNN, DecoderRNN
-from build_dataset import prepare_data, Language, EOS_token, SOS_token, MAX_LENGTH
+from build_dataset import prepare_data, EOS_token, SOS_token, MAX_LENGTH
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', default='0', type=str)
@@ -21,20 +21,12 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 input_lang, output_lang, pairs = prepare_data('eng', 'fra', reverse=True)
 print(random.choice(pairs))
 
-
-def indexes_from_sentence(lang: Language, sentence: str):
-    return [lang.word2index[word] for word in sentence.split(' ')]
-
-
-def tensor_from_sentence(lang: Language, sentence: str):
-    indexes = indexes_from_sentence(lang, sentence)
-    indexes.append(EOS_token)
-    return torch.tensor(indexes, dtype=torch.long, device=device).view(-1, 1)
+from utils import tensor_from_sentence
 
 
 def tensor_from_pair(pair):
-    input_tensor = tensor_from_sentence(input_lang, pair[0])
-    output_tensor = tensor_from_sentence(output_lang, pair[1])
+    input_tensor = tensor_from_sentence(input_lang, pair[0], device=device)
+    output_tensor = tensor_from_sentence(output_lang, pair[1], device=device)
     return input_tensor, output_tensor
 
 
@@ -132,6 +124,5 @@ def train_iters(encoder: EncoderRNN, decoder: DecoderRNN,
 hidden_size = 256
 encoder1 = EncoderRNN(input_lang.n_words, hidden_size).to(device)
 decoder1 = DecoderRNN(hidden_size, output_lang.n_words).to(device)
-
 
 train_iters(encoder1, decoder1, 75000, print_every=100)
