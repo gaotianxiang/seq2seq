@@ -10,24 +10,11 @@ from torch import optim
 from utils import RunningAverage
 from model.net import EncoderRNN, DecoderRNN
 from build_dataset import EOS_token, SOS_token, MAX_LENGTH
-
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--gpu', default='0', type=str)
-args = parser.parse_args()
-
-os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 from model.data_loader import fetch_data_loader
 
-input_lang, output_lang, pairs = fetch_data_loader()
 
-teacher_forcing_ratio = 0.5
-
-
-def train(input_tensor,
+def train(args,
+          input_tensor,
           target_tensor,
           encoder: EncoderRNN,
           decoder: DecoderRNN,
@@ -50,7 +37,7 @@ def train(input_tensor,
 
     decoder_hidden = encoder_hidden
 
-    use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
+    use_teacher_forcing = True if random.random() < args.teacher_forcing_ratio else False
 
     if use_teacher_forcing:
         for di in range(target_length):
@@ -74,7 +61,8 @@ def train(input_tensor,
     return loss.item() / target_length
 
 
-def train_iters(encoder: EncoderRNN,
+def train_iters(args,
+                encoder: EncoderRNN,
                 decoder: DecoderRNN,
                 epochs,
                 pairs,
@@ -95,8 +83,8 @@ def train_iters(encoder: EncoderRNN,
         with tqdm(total=len(training_pairs)) as progress_bar:
             for input_tensor, target_tensor in training_pairs:
                 input_tensor, target_tensor = input_tensor.to(device), target_tensor.to(device)
-                loss = train(input_tensor[0], target_tensor[0], encoder, decoder, encoder_optimizer, decoder_optimizer,
-                             criterion)
+                loss = train(args, input_tensor[0], target_tensor[0], encoder, decoder, encoder_optimizer,
+                             decoder_optimizer, criterion)
                 loss_avg.update(loss)
                 i += 1
                 if i % print_every == 0:
@@ -118,9 +106,24 @@ def train_iters(encoder: EncoderRNN,
                 progress_bar.update()
 
 
-if __name__ == '__main__':
+def main(args):
+    input_lang, output_lang, pairs = fetch_data_loader()
+    args.teacher_forcing_ratio = 0.5
     hidden_size = 256
+    args.hidden_size = hidden_size
     encoder1 = EncoderRNN(input_lang.n_words, hidden_size).to(device)
     decoder1 = DecoderRNN(hidden_size, output_lang.n_words).to(device)
 
-    train_iters(encoder1, decoder1, 100, pairs, print_every=100)
+    train_iters(args, encoder1, decoder1, 100, pairs, print_every=100)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--gpu', default='0', type=str)
+    args = parser.parse_args()
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    args.device = device
+
+    main(args)
