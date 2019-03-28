@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from torch import optim
 
-from utils import RunningAverage
+from utils import RunningAverage, Params
 from model.net import EncoderRNN, DecoderRNN
 from build_dataset import EOS_token, SOS_token, MAX_LENGTH
 from model.data_loader import fetch_data_loader
@@ -107,12 +107,13 @@ def train_iters(args,
 
 
 def main(args):
+    params_path = os.path.join(args.experiment_dir, 'params.json')
+    assert os.path.exists(params_path), 'no json configuration file was found at {}'.format(params_path)
+    hps = Params(params_path)
+    args.__dict__.update(hps.dict)
     input_lang, output_lang, pairs = fetch_data_loader()
-    args.teacher_forcing_ratio = 0.5
-    hidden_size = 256
-    args.hidden_size = hidden_size
-    encoder1 = EncoderRNN(input_lang.n_words, hidden_size).to(device)
-    decoder1 = DecoderRNN(hidden_size, output_lang.n_words).to(device)
+    encoder1 = EncoderRNN(input_lang.n_words, args.hidden_size).to(device)
+    decoder1 = DecoderRNN(args.hidden_size, output_lang.n_words).to(device)
 
     train_iters(args, encoder1, decoder1, 100, pairs, print_every=100)
 
@@ -120,6 +121,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', default='0', type=str)
+    parser.add_argument('--experiment_dir', '--expdir', default='experiments/base_model', type=str)
     args = parser.parse_args()
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
