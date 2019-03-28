@@ -24,17 +24,7 @@ print(random.choice(pairs))
 
 from torch.utils import data as data
 
-
-class Fra2Eng(data.Dataset):
-    def __init__(self, pairs):
-        super().__init__()
-        self.fra2eng_pairs = pairs
-
-    def __len__(self):
-        return len(self.fra2eng_pairs)
-
-    def __getitem__(self, idx):
-        return self.fra2eng_pairs[idx]
+from model.data_loader import Fra2Eng
 
 
 def tensor_from_pair(pair):
@@ -46,7 +36,7 @@ def tensor_from_pair(pair):
 pairs = [tensor_from_pair(pair) for pair in pairs]
 pairs = Fra2Eng(pairs)
 
-pairs = data.DataLoader(pairs, batch_size=1, shuffle=True, num_workers=8)
+pairs = data.DataLoader(pairs, batch_size=1, shuffle=True, num_workers=0)
 
 teacher_forcing_ratio = 0.5
 
@@ -110,7 +100,6 @@ def train_iters(encoder: EncoderRNN,
     encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
     decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
 
-    # training_pairs = [tensor_from_pair(random.choice(pairs)) for _ in range(n_iters)]
     training_pairs = pairs
 
     criterion = nn.NLLLoss()
@@ -118,11 +107,6 @@ def train_iters(encoder: EncoderRNN,
     for epoch in trange(epochs, desc='epochs'):
         i = 0
         with tqdm(total=len(training_pairs)) as progress_bar:
-            # for iter in range(1, len(training_pairs) + 1):
-            #     training_pair = training_pairs[iter - 1]
-            #     input_tensor = training_pair[0]
-            #     target_tensor = training_pair[1]
-
             for input_tensor, target_tensor in training_pairs:
                 input_tensor, target_tensor = input_tensor.to(device), target_tensor.to(device)
                 loss = train(input_tensor[0], target_tensor[0], encoder, decoder, encoder_optimizer, decoder_optimizer,

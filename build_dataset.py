@@ -1,5 +1,7 @@
 import unicodedata
 import re
+import pickle
+import os
 
 SOS_token = 0
 EOS_token = 1
@@ -40,6 +42,12 @@ def normalize_string(s: str):
 
 def read_languages(lang1, lang2, reverse=False):
     # eng to fra
+    cache_path = './data/fra-eng/fra-eng.preprocess'
+    if os.path.exists(cache_path):
+        print('cache hit, read from cache...')
+        pkl = pickle.load(open(cache_path, 'rb'))
+        return pkl['input_lang'], pkl['output_lang'], pkl['pairs']
+    print('cache miss...')
     print('reading lines...')
     lines = open('./data/fra-eng/fra.txt').readlines()
 
@@ -52,6 +60,10 @@ def read_languages(lang1, lang2, reverse=False):
     else:
         input_lang = Language(lang1)
         output_lang = Language(lang2)
+
+    pkl = {'input_lang': input_lang, 'output_lang': output_lang, 'pairs': pairs}
+    pickle.dump(pkl, open(cache_path, 'wb'))
+    print('cache stored...')
 
     return input_lang, output_lang, pairs
 
