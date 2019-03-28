@@ -27,3 +27,9 @@ def tensor_from_sentence(lang: Language, sentence: str, device):
     indexes = indexes_from_sentence(lang, sentence)
     indexes.append(EOS_token)
     return torch.tensor(indexes, dtype=torch.long, device=device).view(-1, 1)
+
+
+def tensor_from_pair(input_lang: Language, output_lang: Language, pair, device):
+    input_tensor = tensor_from_sentence(input_lang, pair[0], device=device)
+    output_tensor = tensor_from_sentence(output_lang, pair[1], device=device)
+    return input_tensor, output_tensor

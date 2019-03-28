@@ -26,14 +26,10 @@ from torch.utils import data as data
 
 from model.data_loader import Fra2Eng
 
-
-def tensor_from_pair(pair):
-    input_tensor = tensor_from_sentence(input_lang, pair[0], device=device)
-    output_tensor = tensor_from_sentence(output_lang, pair[1], device=device)
-    return input_tensor, output_tensor
+from utils import tensor_from_pair
 
 
-pairs = [tensor_from_pair(pair) for pair in pairs]
+pairs = [tensor_from_pair(input_lang, output_lang, pair, device) for pair in pairs]
 pairs = Fra2Eng(pairs)
 
 pairs = data.DataLoader(pairs, batch_size=1, shuffle=True, num_workers=0)
