@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from torch import optim
 
-from utils import RunningAverage, Params
+from utils import RunningAverage, Params, set_logger, log
 from model.net import EncoderRNN, DecoderRNN
 from build_dataset import EOS_token, SOS_token, MAX_LENGTH
 from model.data_loader import fetch_data_loader
@@ -88,9 +88,9 @@ def train_iters(args,
                 loss_avg.update(loss)
                 i += 1
                 if i % print_every == 0:
-                    tqdm.write('# of iterations: {}, loss average: {:.3f}'.format(i, loss_avg.avg))
+                    log('# of iterations: {}, loss average: {:.3f}'.format(i, loss_avg.avg))
                     if loss_avg.avg < current_best_loss:
-                        tqdm.write('new best loss average found, saving model...')
+                        log('new best loss average found, saving model...')
                         current_best_loss = loss_avg.avg
                         state = {
                             'encoder': encoder.state_dict(),
@@ -98,8 +98,8 @@ def train_iters(args,
                             'iters': i,
                             'epoch': epoch
                         }
-                        os.makedirs('./ckpts', exist_ok=True)
-                        torch.save(state, './ckpts/best.pth.tar')
+                        os.makedirs(os.path.join(args.model_dir, 'ckpts'), exist_ok=True)
+                        torch.save(state, os.path.join(args.model_dir, 'ckpts', 'best.pth.tar'))
                     loss_avg.reset()
 
                 progress_bar.set_postfix(loss_avg=loss_avg.avg)
@@ -107,10 +107,12 @@ def train_iters(args,
 
 
 def main(args):
-    params_path = os.path.join(args.experiment_dir, 'params.json')
+    params_path = os.path.join(args.model_dir, 'params.json')
     assert os.path.exists(params_path), 'no json configuration file was found at {}'.format(params_path)
     hps = Params(params_path)
     args.__dict__.update(hps.dict)
+    set_logger(os.path.join(args.model_dir, 'train.log'))
+
     input_lang, output_lang, pairs = fetch_data_loader()
     encoder1 = EncoderRNN(input_lang.n_words, args.hidden_size).to(device)
     decoder1 = DecoderRNN(args.hidden_size, output_lang.n_words).to(device)
@@ -121,7 +123,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', default='0', type=str)
-    parser.add_argument('--experiment_dir', '--expdir', default='experiments/base_model', type=str)
+    parser.add_argument('--model_dir', default='experiments/base_model', type=str)
     args = parser.parse_args()
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
