@@ -1,15 +1,16 @@
 import os
 import random
 import argparse
+from tqdm import tqdm, trange
 
 import torch
 import torch.nn as nn
 from torch import optim
-from tqdm import tqdm, trange
+
 from utils import RunningAverage
 from model.net import EncoderRNN, DecoderRNN
-from build_dataset import prepare_data, EOS_token, SOS_token, MAX_LENGTH
-from utils import tensor_from_sentence
+from build_dataset import EOS_token, SOS_token, MAX_LENGTH
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', default='0', type=str)
@@ -19,20 +20,9 @@ os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-input_lang, output_lang, pairs = prepare_data('eng', 'fra', reverse=True)
-print(random.choice(pairs))
+from model.data_loader import fetch_data_loader
 
-from torch.utils import data as data
-
-from model.data_loader import Fra2Eng
-
-from utils import tensor_from_pair
-
-
-pairs = [tensor_from_pair(input_lang, output_lang, pair, device) for pair in pairs]
-pairs = Fra2Eng(pairs)
-
-pairs = data.DataLoader(pairs, batch_size=1, shuffle=True, num_workers=0)
+input_lang, output_lang, pairs = fetch_data_loader()
 
 teacher_forcing_ratio = 0.5
 
