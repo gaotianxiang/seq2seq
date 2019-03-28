@@ -111,7 +111,7 @@ def main(args):
     assert os.path.exists(params_path), 'no json configuration file was found at {}'.format(params_path)
     hps = Params(params_path)
     args.__dict__.update(hps.dict)
-    set_logger(os.path.join(args.model_dir, 'train.log'))
+    set_logger(os.path.join(args.model_dir, 'train.log'), terminal=False)
 
     input_lang, output_lang, pairs = fetch_data_loader()
     encoder1 = EncoderRNN(input_lang.n_words, args.hidden_size).to(device)
