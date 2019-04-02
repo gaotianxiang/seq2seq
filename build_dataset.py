@@ -2,9 +2,11 @@ import unicodedata
 import re
 import pickle
 import os
+import numpy as np
 
-SOS_token = 0
-EOS_token = 1
+SOS_token = 1
+EOS_token = 2
+Pad_token = 0
 
 
 class Language:
@@ -12,8 +14,8 @@ class Language:
         self.name = name
         self.word2index = {}
         self.word2count = {}
-        self.index2word = {0: 'SOS', 1: 'EOS'}
-        self.n_words = 2
+        self.index2word = {0: 'PAD', 1: 'SOS', 2: 'EOS'}
+        self.n_words = 3
 
     def add_sentence(self, sentence: str):
         for word in sentence.split(' '):

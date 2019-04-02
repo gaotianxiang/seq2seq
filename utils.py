@@ -93,7 +93,7 @@ def indexes_from_sentence(lang: Language, sentence: str):
 def tensor_from_sentence(lang: Language, sentence: str):
     indexes = indexes_from_sentence(lang, sentence)
     indexes.append(EOS_token)
-    return torch.tensor(indexes, dtype=torch.long).view(-1, 1)
+    return indexes
 
 
 def tensor_from_pair(input_lang: Language, output_lang: Language, pair):
