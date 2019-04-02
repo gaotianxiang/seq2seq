@@ -17,7 +17,7 @@ def evaluate(encoder: EncoderRNN,
              output_lang: Language,
              sentence,
              device,
-             max_length=MAX_LENGTH):
+             args=None):
     with torch.no_grad():
         input_tensor = tensor_from_sentence(input_lang, sentence).to(device)
         input_length = input_tensor.size()[0]
@@ -32,7 +32,7 @@ def evaluate(encoder: EncoderRNN,
 
         decoded_words = []
 
-        for di in range(max_length):
+        for di in range(args.max_length):
             decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
             topv, topi = decoder_output.topk(1)
             if topi.item() == EOS_token:
@@ -51,12 +51,12 @@ def evaluate_randomly(encoder: EncoderRNN,
                       output_lang: Language,
                       pairs,
                       device,
-                      n=10):
-    for i in range(n):
+                      args=None):
+    for i in range(args.sample_num):
         pair = random.choice(pairs)
         logging.info('> ' + pair[0])
         logging.info('= ' + pair[1])
-        output_words = evaluate(encoder, deocder, input_lang, output_lang, pair[0], device)
+        output_words = evaluate(encoder, deocder, input_lang, output_lang, pair[0], device, args)
         output_sentence = ' '.join(output_words)
         logging.info('< ' + output_sentence)
         logging.info('')
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     args.device = device
     set_logger(os.path.join(args.model_dir, 'eval.log'), terminal=True)
 
-    input_lang, output_lang, pairs = prepare_data('eng', 'fra', reverse=True)
+    input_lang, output_lang, pairs = prepare_data('eng', 'fra', reverse=True, args=args)
     encoder = EncoderRNN(input_lang.n_words, args.hidden_size).to(device)
     decoder = DecoderRNN(args.hidden_size, output_lang.n_words).to(device)
     print('loading model...')
@@ -84,4 +84,4 @@ if __name__ == '__main__':
     encoder.load_state_dict(state['encoder'])
     decoder.load_state_dict(state['decoder'])
     print('model loaded, start translating...')
-    evaluate_randomly(encoder, decoder, input_lang, output_lang, pairs, device)
+    evaluate_randomly(encoder, decoder, input_lang, output_lang, pairs, device, args)
