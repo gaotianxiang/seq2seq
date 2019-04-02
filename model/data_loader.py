@@ -17,8 +17,8 @@ class Fra2Eng(data.Dataset):
         return self.fra2eng_pairs[idx]
 
 
-def fetch_data_loader():
-    input_lang, output_lang, pairs = prepare_data('eng', 'fra', reverse=True)
+def fetch_data_loader(args):
+    input_lang, output_lang, pairs = prepare_data('eng', 'fra', args, reverse=True)
     print(random.choice(pairs))
 
     pairs = [tensor_from_pair(input_lang, output_lang, pair) for pair in pairs]

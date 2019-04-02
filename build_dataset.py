@@ -79,18 +79,19 @@ eng_prefixes = (
 )
 
 
-def filter_pair(p):
-    return len(p[0].split(' ')) < MAX_LENGTH and len(p[1].split(' ')) < MAX_LENGTH and p[1].startswith(eng_prefixes)
+def filter_pair(p, args):
+    return len(p[0].split(' ')) < args.max_length and len(p[1].split(' ')) < args.max_length and p[1].startswith(
+        eng_prefixes)
 
 
-def filter_pairs(pairs):
-    return [pair for pair in pairs if filter_pair(pair)]
+def filter_pairs(pairs, args):
+    return [pair for pair in pairs if filter_pair(pair, args)]
 
 
-def prepare_data(lang1, lang2, reverse=False):
+def prepare_data(lang1, lang2, args, reverse=False):
     input_lang, output_lang, pairs = read_languages(lang1, lang2, reverse)
     print('read {} sentence pairs'.format(len(pairs)))
-    pairs = filter_pairs(pairs)
+    pairs = filter_pairs(pairs, args)
     print('trimmed to {} sentence pairs'.format(len(pairs)))
     print('counting words...')
     for pair in pairs:

@@ -118,7 +118,7 @@ def main(args):
     args.__dict__.update(hps.dict)
     set_logger(os.path.join(args.model_dir, 'train.log'), terminal=False)
 
-    input_lang, output_lang, pairs = fetch_data_loader()
+    input_lang, output_lang, pairs = fetch_data_loader(args)
     encoder1 = EncoderRNN(input_lang.n_words, args.hidden_size).to(device)
     decoder1 = DecoderRNN(args.hidden_size, output_lang.n_words).to(device)
 
