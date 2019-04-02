@@ -6,6 +6,7 @@ from tqdm import tqdm, trange
 import torch
 import torch.nn as nn
 from torch import optim
+from tensorboardX import SummaryWriter
 
 from utils import RunningAverage, Params, set_logger, log
 from model.net import EncoderRNN, DecoderRNN
@@ -67,8 +68,10 @@ def train_iters(args,
                 epochs,
                 pairs,
                 print_every=1000,
+                log_every=10,
                 learning_rate=0.01):
     loss_avg = RunningAverage()
+    summary_writer = SummaryWriter(log_dir=os.path.join(args.model_dir, 'summary'))
     current_best_loss = 1e3
 
     encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
@@ -87,6 +90,8 @@ def train_iters(args,
                              decoder_optimizer, criterion)
                 loss_avg.update(loss)
                 i += 1
+                if i % log_every == 0:
+                    summary_writer.add_scalar('loss_value', loss, )
                 if i % print_every == 0:
                     log('# of iterations: {}, loss average: {:.3f}'.format(i, loss_avg.avg))
                     if loss_avg.avg < current_best_loss:
@@ -117,7 +122,7 @@ def main(args):
     encoder1 = EncoderRNN(input_lang.n_words, args.hidden_size).to(device)
     decoder1 = DecoderRNN(args.hidden_size, output_lang.n_words).to(device)
 
-    train_iters(args, encoder1, decoder1, 100, pairs, print_every=100)
+    train_iters(args, encoder1, decoder1, 100, pairs, print_every=100, log_every=10)
 
 
 if __name__ == '__main__':
