@@ -28,7 +28,7 @@ def train(args,
     input_masks = mask_pair[:, 0, :]
     target_masks = mask_pair[:, 1, :].t()
 
-    encoder_hidden = encoder.init_hidden(args.batch_size, device)
+    encoder_hidden = encoder.init_hidden(device)
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
 
@@ -45,8 +45,8 @@ def train(args,
 
     decoder_hidden = encoder_hidden
 
-    # use_teacher_forcing = True if random.random() < args.teacher_forcing_ratio else False
-    use_teacher_forcing = True
+    use_teacher_forcing = True if random.random() < args.teacher_forcing_ratio else False
+    # use_teacher_forcing = True
 
     if use_teacher_forcing:
         for di in range(sentence_length):
@@ -58,7 +58,7 @@ def train(args,
             decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
             topv, topi = decoder_output.topk(1)
             decoder_input = topi.squeeze().detach()
-            loss += criterion(decoder_output, target_tensors[di]) * target_masks[di]
+            loss += torch.sum(criterion(decoder_output, target_tensors[di]) * target_masks[di])
             # if decoder_input.item() == EOS_token:
             #     break
     loss.backward()
@@ -66,7 +66,7 @@ def train(args,
     encoder_optimizer.step()
     decoder_optimizer.step()
 
-    return loss.item() / torch.sum(target_masks)
+    return loss / torch.sum(target_masks)
 
 
 def train_iters(args,
@@ -95,7 +95,7 @@ def train_iters(args,
                 language_pair, mask_pair = language_pair.to(device), mask_pair.to(device)
                 loss = train(args, language_pair, mask_pair, encoder, decoder, encoder_optimizer,
                              decoder_optimizer, criterion)
-                loss_avg.update(loss)
+                loss_avg.update(loss.item())
                 i += 1
                 if i % log_every == 0:
                     summary_writer.add_scalar('loss_value', loss, )
@@ -129,7 +129,7 @@ def main(args):
     encoder1 = EncoderRNN(input_lang.n_words, args).to(device)
     decoder1 = DecoderRNN(output_lang.n_words, args).to(device)
 
-    train_iters(args, encoder1, decoder1, 100, pairs, print_every=100, log_every=10)
+    train_iters(args, encoder1, decoder1, 100, pairs, print_every=10, log_every=10)
 
 
 if __name__ == '__main__':

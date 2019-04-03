@@ -19,7 +19,7 @@ def evaluate(encoder: EncoderRNN,
              device,
              args=None):
     with torch.no_grad():
-        input_tensor = tensor_from_sentence(input_lang, sentence).to(device)
+        input_tensor = torch.tensor(tensor_from_sentence(input_lang, sentence), dtype=torch.long).to(device)
         input_length = input_tensor.size()[0]
         encoder_hidden = encoder.init_hidden(device)
 
@@ -72,13 +72,15 @@ if __name__ == '__main__':
     assert os.path.exists(params_path), 'no json configuration file was found at {}'.format(params_path)
     hps = Params(params_path)
     args.__dict__.update(hps.dict)
+    args.batch_size = 1
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.device = device
     set_logger(os.path.join(args.model_dir, 'eval.log'), terminal=True)
 
     input_lang, output_lang, pairs = prepare_data('eng', 'fra', reverse=True, args=args)
-    encoder = EncoderRNN(input_lang.n_words, args.hidden_size).to(device)
-    decoder = DecoderRNN(args.hidden_size, output_lang.n_words).to(device)
+    encoder = EncoderRNN(input_lang.n_words, args).to(device)
+    decoder = DecoderRNN(output_lang.n_words, args).to(device)
     print('loading model...')
     state = torch.load(os.path.join(args.model_dir, 'ckpts', 'best.pth.tar'))
     encoder.load_state_dict(state['encoder'])

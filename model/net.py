@@ -17,8 +17,8 @@ class EncoderRNN(nn.Module):
         output, hidden = self.gru(output, hidden)
         return output, hidden
 
-    def init_hidden(self, batch_size, device):
-        return torch.zeros(1, batch_size, self.hidden_size, device=device)
+    def init_hidden(self, device):
+        return torch.zeros(1, self.args.batch_size, self.hidden_size, device=device)
 
 
 class DecoderRNN(nn.Module):
