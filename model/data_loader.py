@@ -1,7 +1,6 @@
 import random
 import torch
 import numpy as np
-import argparse
 
 from utils import tensor_from_pair
 from torch.utils import data as data
