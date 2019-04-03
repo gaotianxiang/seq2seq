@@ -9,8 +9,12 @@ def t_data_loader():
 
     _, _, dtld = fetch_data_loader(args)
     for p, m in dtld:
+        print(p)
+        print(m)
+        print(p.size())
+        print(m.size())
         p1 = p[:, 0, :]
-        m1 = m[:, 1]
+        m1 = m[:, 0]
         print(p1)
         print(m1)
         print(type(p1))

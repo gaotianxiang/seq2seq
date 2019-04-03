@@ -19,7 +19,7 @@ class Fra2Eng(data.Dataset):
         return len(self.fra2eng_pairs)
 
     def __getitem__(self, idx):
-        return self.fra2eng_pairs[idx], self.masks[idx]
+        return torch.tensor(self.fra2eng_pairs[idx], dtype=torch.long), torch.tensor(self.masks[idx], dtype=torch.float)
 
 
 def add_padding(sentence: list, max_length):
@@ -60,7 +60,7 @@ def add_padding_pairs(pairs, args):
         lang2, mask_lang2 = add_padding(lang2, max_length)
         padded_pairs.append([lang1, lang2])
         masks.append([mask_lang1, mask_lang2])
-    return np.array(padded_pairs, dtype=np.int64), np.array(masks, dtype=np.float32)
+    return padded_pairs, masks
 
 
 def fetch_data_loader(args):

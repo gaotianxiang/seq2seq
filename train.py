@@ -61,12 +61,14 @@ def train(args,
             loss += torch.sum(criterion(decoder_output, target_tensors[di]) * target_masks[di])
             # if decoder_input.item() == EOS_token:
             #     break
+
+    loss = loss / target_masks.sum()
     loss.backward()
 
     encoder_optimizer.step()
     decoder_optimizer.step()
 
-    return loss / torch.sum(target_masks)
+    return loss
 
 
 def train_iters(args,
@@ -81,8 +83,8 @@ def train_iters(args,
     summary_writer = SummaryWriter(log_dir=os.path.join(args.model_dir, 'summary'))
     current_best_loss = 1e3
 
-    encoder_optimizer = optim.SGD(encoder.parameters(), lr=learning_rate)
-    decoder_optimizer = optim.SGD(decoder.parameters(), lr=learning_rate)
+    encoder_optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
+    decoder_optimizer = optim.Adam(decoder.parameters(), lr=learning_rate)
 
     training_pairs = pairs
 
@@ -129,7 +131,7 @@ def main(args):
     encoder1 = EncoderRNN(input_lang.n_words, args).to(device)
     decoder1 = DecoderRNN(output_lang.n_words, args).to(device)
 
-    train_iters(args, encoder1, decoder1, 100, pairs, print_every=10, log_every=10)
+    train_iters(args, encoder1, decoder1, epochs=100, pairs=pairs, print_every=10, log_every=10)
 
 
 if __name__ == '__main__':

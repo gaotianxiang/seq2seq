@@ -67,6 +67,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', default='0', type=str)
     parser.add_argument('--model_dir', default='experiments/base_model', type=str)
     args = parser.parse_args()
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
     params_path = os.path.join(args.model_dir, 'params.json')
     assert os.path.exists(params_path), 'no json configuration file was found at {}'.format(params_path)
