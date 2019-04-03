@@ -60,7 +60,7 @@ def add_padding_pairs(pairs, args):
         lang2, mask_lang2 = add_padding(lang2, max_length)
         padded_pairs.append([lang1, lang2])
         masks.append([mask_lang1, mask_lang2])
-    return np.array(padded_pairs), np.array(masks)
+    return np.array(padded_pairs, dtype=np.int64), np.array(masks, dtype=np.float32)
 
 
 def fetch_data_loader(args):
@@ -70,20 +70,5 @@ def fetch_data_loader(args):
     pairs = [tensor_from_pair(input_lang, output_lang, pair) for pair in pairs]
     pairs, masks = add_padding_pairs(pairs, args)
     dtst = Fra2Eng(pairs, masks)
-    pairs = data.DataLoader(dtst, batch_size=args.batch_size, shuffle=True, num_workers=0, drop_last=False)
+    pairs = data.DataLoader(dtst, batch_size=args.batch_size, shuffle=True, num_workers=0, drop_last=True)
     return input_lang, output_lang, pairs
-
-
-def t_data_loader():
-    args = argparse.Namespace()
-    args.max_length = 10
-    args.batch_size = 5
-
-    dtld = fetch_data_loader(args)
-    pairs, masks = dtld[0]
-    print(pairs)
-    print(masks)
-
-
-if __name__ == '__main__':
-    t_data_loader()

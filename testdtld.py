@@ -9,13 +9,16 @@ def t_data_loader():
 
     _, _, dtld = fetch_data_loader(args)
     for p, m in dtld:
-        print(p)
-        print(m)
-        print(type(p))
-        print(type(m))
-        print(p.size())
-        print(m.size())
+        p1 = p[:, 0, :]
+        m1 = m[:, 1]
+        print(p1)
+        print(m1)
+        print(type(p1))
+        print(type(m1))
+        print(p1.size())
+        print(m1.size())
         break
+
 
 if __name__ == '__main__':
     t_data_loader()
