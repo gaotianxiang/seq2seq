@@ -2,7 +2,6 @@ import unicodedata
 import re
 import pickle
 import os
-import numpy as np
 
 SOS_token = 1
 EOS_token = 2
@@ -70,7 +69,6 @@ def read_languages(lang1, lang2, reverse=False):
     return input_lang, output_lang, pairs
 
 
-MAX_LENGTH = 10
 eng_prefixes = (
     "i am ", "i m ",
     "he is", "he s ",
@@ -91,6 +89,20 @@ def filter_pairs(pairs, args):
 
 
 def prepare_data(lang1, lang2, args, reverse=False):
+    """preprocess the text data English-French
+
+    Args:
+        lang1: the input language helper object
+        lang2: the output language helper object
+        args: the namespace of hyperparameters
+        reverse: whether inverse the order of pairs, if reverse=False then English-Frence pair
+            if reverse=True, then French-English pair
+
+    Returns:
+        input_lang: input helper object with word2index... updated
+        output_lang: output helper object with word2index... updated
+        pairs: list of lists, in each sublist, there are two entries where each is a sentence
+    """
     input_lang, output_lang, pairs = read_languages(lang1, lang2, reverse)
     print('read {} sentence pairs'.format(len(pairs)))
     pairs = filter_pairs(pairs, args)

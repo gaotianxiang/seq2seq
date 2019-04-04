@@ -10,7 +10,7 @@ from tensorboardX import SummaryWriter
 
 from utils import RunningAverage, Params, set_logger, log
 from model.net import EncoderRNN, DecoderRNN
-from build_dataset import EOS_token, SOS_token, MAX_LENGTH
+from build_dataset import SOS_token
 from model.data_loader import fetch_data_loader
 
 
@@ -21,7 +21,7 @@ def train(args,
           decoder: DecoderRNN,
           encoder_optimizer: optim.Optimizer,
           decoder_optimizer: optim.Optimizer,
-          criterion, max_length=MAX_LENGTH):
+          criterion):
     input_tensors = language_pair[:, 0, :].t()
     target_tensors = language_pair[:, 1, :].t()
 

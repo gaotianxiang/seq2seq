@@ -5,7 +5,7 @@ import os
 import logging
 
 from model.net import EncoderRNN, DecoderRNN
-from build_dataset import MAX_LENGTH, SOS_token, EOS_token
+from build_dataset import SOS_token, EOS_token
 from build_dataset import prepare_data, Language
 from utils import tensor_from_sentence
 from utils import Params, set_logger
