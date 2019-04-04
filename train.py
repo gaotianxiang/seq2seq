@@ -25,10 +25,9 @@ def train(args,
     input_tensors = language_pair[:, 0, :].t()
     target_tensors = language_pair[:, 1, :].t()
 
-    input_masks = mask_pair[:, 0, :]
     target_masks = mask_pair[:, 1, :].t()
 
-    encoder_hidden = encoder.init_hidden(device)
+    encoder_init_hidden = encoder.init_hidden(device)
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
 
@@ -36,15 +35,13 @@ def train(args,
 
     loss = 0
 
-    for ei in range(sentence_length):
-        encoder_output, encoder_hidden = encoder(input_tensors[ei], encoder_hidden)
+    encoder_output, encoder_final_hidden = encoder(input_tensors, encoder_init_hidden)
 
     decoder_input = torch.tensor([SOS_token] * args.batch_size, device=device)
 
-    decoder_hidden = encoder_hidden
+    decoder_hidden = encoder_final_hidden
 
     use_teacher_forcing = True if random.random() < args.teacher_forcing_ratio else False
-    # use_teacher_forcing = True
 
     if use_teacher_forcing:
         for di in range(sentence_length):
@@ -126,8 +123,8 @@ def main(args):
     set_logger(os.path.join(args.model_dir, 'train.log'), terminal=False)
 
     input_lang, output_lang, pairs = fetch_data_loader(args)
-    encoder1 = EncoderRNN(input_lang.n_words, args).to(device)
-    decoder1 = DecoderRNN(output_lang.n_words, args).to(device)
+    encoder1 = EncoderRNN(input_lang.n_words, batch_size=args.batch_size, hidden_size=args.hidden_size).to(device)
+    decoder1 = DecoderRNN(output_lang.n_words, batch_size=args.batch_size, hidden_size=args.hidden_size).to(device)
 
     train_iters(args, encoder1, decoder1, pairs=pairs)
 

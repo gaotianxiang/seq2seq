@@ -22,10 +22,10 @@ class EncoderRNN(nn.Module):
 
 
 class DecoderRNN(nn.Module):
-    def __init__(self, output_vocabulary_size, args):
+    def __init__(self, output_vocabulary_size, batch_size, hidden_size):
         super().__init__()
-        self.batch_size = args.batch_size
-        self.hidden_size = args.hidden_size
+        self.batch_size = batch_size
+        self.hidden_size = hidden_size
         self.embedding = nn.Embedding(output_vocabulary_size, self.hidden_size)
         self.gru = nn.GRU(self.hidden_size, self.hidden_size)
         self.out = nn.Linear(self.hidden_size, output_vocabulary_size)

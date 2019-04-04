@@ -20,15 +20,13 @@ def evaluate(encoder: EncoderRNN,
              args=None):
     with torch.no_grad():
         input_tensor = torch.tensor(tensor_from_sentence(input_lang, sentence), dtype=torch.long).to(device)
-        input_length = input_tensor.size()[0]
-        encoder_hidden = encoder.init_hidden(device)
+        encoder_init_hidden = encoder.init_hidden(device)
 
-        for ei in range(input_length):
-            encoder_output, encoder_hidden = encoder(input_tensor[ei], encoder_hidden)
+        encoder_output, encoder_final_hidden = encoder(input_tensor, encoder_init_hidden)
 
         decoder_input = torch.tensor([[SOS_token]], device=device)
 
-        decoder_hidden = encoder_hidden
+        decoder_hidden = encoder_final_hidden
 
         decoded_words = []
 
@@ -80,8 +78,8 @@ if __name__ == '__main__':
     set_logger(os.path.join(args.model_dir, 'eval.log'), terminal=True)
 
     input_lang, output_lang, pairs = prepare_data('eng', 'fra', reverse=True, args=args)
-    encoder = EncoderRNN(input_lang.n_words, args).to(device)
-    decoder = DecoderRNN(output_lang.n_words, args).to(device)
+    encoder = EncoderRNN(input_lang.n_words, batch_size=args.batch_size, hidden_size=args.hidden_size).to(device)
+    decoder = DecoderRNN(output_lang.n_words, batch_size=args.batch_size, hidden_size=args.hidden_size).to(device)
     print('loading model...')
     state = torch.load(os.path.join(args.model_dir, 'ckpts', 'best.pth.tar'))
     encoder.load_state_dict(state['encoder'])
