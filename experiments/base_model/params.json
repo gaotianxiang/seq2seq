@@ -3,5 +3,6 @@
   "hidden_size": 256,
   "max_length": 10,
   "sample_num": 10,
-  "batch_size": 64
+  "batch_size": 64,
+  "num_workers": 16
 }

@@ -25,11 +25,11 @@ def add_padding(sentence: list, max_length):
     """according to max_length add padding to sentence
 
     Args:
-        sentence: list of words eg. ['I', 'am', 'tianxiang', '.']
+        sentence: list of indices of words
         max_length: integer maximum length of sentence
 
     Returns:
-        a padded sentence eg. ['I', 'am', 'tianxiang', '.', 'PAD'] if max_length = 5
+        a padded sentence eg. [3, 24, 45, 2, 0] if max_length = 5
         a mask (list) which has 1's at normal word entries and 0's at PAD entries e.g. [1, 1, 1, 1, 0]
     """
     current_length = len(sentence)
@@ -63,11 +63,22 @@ def add_padding_pairs(pairs, args):
 
 
 def fetch_data_loader(args):
+    """fetch a pytorch dataloader
+
+    Args:
+        args: the namespace of hyperparameters
+
+    Returns:
+        input_lang: input language class object with word2index... updated
+        output_lang: output language class object with word2index... updated
+        pairs: a pytorch dataloader which generate batches of language padded pairs and corresponding masks
+    """
     input_lang, output_lang, pairs = prepare_data('eng', 'fra', args, reverse=True)
     print(random.choice(pairs))
 
     pairs = [tensor_from_pair(input_lang, output_lang, pair) for pair in pairs]
     pairs, masks = add_padding_pairs(pairs, args)
     dtst = Fra2Eng(pairs, masks)
-    pairs = data.DataLoader(dtst, batch_size=args.batch_size, shuffle=True, num_workers=0, drop_last=True)
+    pairs = data.DataLoader(dtst, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
+                            drop_last=True)
     return input_lang, output_lang, pairs
