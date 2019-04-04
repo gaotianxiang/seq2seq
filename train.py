@@ -33,8 +33,6 @@ def train(args,
     decoder_optimizer.zero_grad()
 
     sentence_length = args.max_length
-    # input_length = input_tensor.size(0)
-    # target_length = target_tensor.size(0)
 
     loss = 0
 
@@ -59,8 +57,6 @@ def train(args,
             topv, topi = decoder_output.topk(1)
             decoder_input = topi.squeeze().detach()
             loss += torch.sum(criterion(decoder_output, target_tensors[di]) * target_masks[di])
-            # if decoder_input.item() == EOS_token:
-            #     break
 
     loss = loss / target_masks.sum()
     loss.backward()
@@ -74,17 +70,19 @@ def train(args,
 def train_iters(args,
                 encoder: EncoderRNN,
                 decoder: DecoderRNN,
-                epochs,
-                pairs,
-                print_every=1000,
-                log_every=10,
-                learning_rate=0.01):
+                pairs):
+
+    epochs = args.num_epochs
+    print_every = args.print_every
+    log_every = args.log_summary_every
+    lr = args.learning_rate
+
     loss_avg = RunningAverage()
     summary_writer = SummaryWriter(log_dir=os.path.join(args.model_dir, 'summary'))
     current_best_loss = 1e3
 
-    encoder_optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
-    decoder_optimizer = optim.Adam(decoder.parameters(), lr=learning_rate)
+    encoder_optimizer = optim.Adam(encoder.parameters(), lr=lr)
+    decoder_optimizer = optim.Adam(decoder.parameters(), lr=lr)
 
     training_pairs = pairs
 
@@ -131,7 +129,7 @@ def main(args):
     encoder1 = EncoderRNN(input_lang.n_words, args).to(device)
     decoder1 = DecoderRNN(output_lang.n_words, args).to(device)
 
-    train_iters(args, encoder1, decoder1, epochs=100, pairs=pairs, print_every=10, log_every=10)
+    train_iters(args, encoder1, decoder1, pairs=pairs)
 
 
 if __name__ == '__main__':
