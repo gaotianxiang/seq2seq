@@ -1,5 +1,5 @@
 import torch
-from model.net import EncoderRNN
+from modules.net import EncoderRNN
 import numpy as np
 
 batch_size = 3

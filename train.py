@@ -9,9 +9,9 @@ from torch import optim
 from tensorboardX import SummaryWriter
 
 from utils import RunningAverage, Params, set_logger, log
-from model.net import EncoderRNN, DecoderRNN
+from modules.net import EncoderRNN, DecoderRNN
 from build_dataset import SOS_token
-from model.data_loader import fetch_data_loader
+from modules.data_loader import fetch_data_loader
 
 
 def train(args,
@@ -99,7 +99,7 @@ def train_iters(args,
                 if i % print_every == 0:
                     log('# of iterations: {}, loss average: {:.3f}'.format(i, loss_avg.avg))
                     if loss_avg.avg < current_best_loss:
-                        log('new best loss average found, saving model...')
+                        log('new best loss average found, saving modules...')
                         current_best_loss = loss_avg.avg
                         state = {
                             'encoder': encoder.state_dict(),

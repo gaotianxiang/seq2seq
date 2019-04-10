@@ -4,7 +4,7 @@ import argparse
 import os
 import logging
 
-from model.net import EncoderRNN, DecoderRNN
+from modules.net import EncoderRNN, DecoderRNN
 from build_dataset import SOS_token, EOS_token
 from build_dataset import prepare_data, Language
 from utils import tensor_from_sentence
@@ -80,9 +80,9 @@ if __name__ == '__main__':
     input_lang, output_lang, pairs = prepare_data('eng', 'fra', reverse=True, args=args)
     encoder = EncoderRNN(input_lang.n_words, batch_size=args.batch_size, hidden_size=args.hidden_size).to(device)
     decoder = DecoderRNN(output_lang.n_words, batch_size=args.batch_size, hidden_size=args.hidden_size).to(device)
-    print('loading model...')
+    print('loading modules...')
     state = torch.load(os.path.join(args.model_dir, 'ckpts', 'best.pth.tar'))
     encoder.load_state_dict(state['encoder'])
     decoder.load_state_dict(state['decoder'])
-    print('model loaded, start translating...')
+    print('modules loaded, start translating...')
     evaluate_randomly(encoder, decoder, input_lang, output_lang, pairs, device, args)
