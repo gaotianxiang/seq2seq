@@ -25,9 +25,11 @@ hidden = test_init_hidden_state
 hts = []
 for i in range(seq_length):
     output, hidden = net(test_batch[i], hidden)
+    print(output.equal(hidden))
     hts.append(output)
 hts = torch.cat(hts)
-
+print(hts[-1])
+print(hidden)
 print(hts.size())
 # print(hts)
 print(hts.equal(onestep_output))
