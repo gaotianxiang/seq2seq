@@ -17,6 +17,8 @@ def get_parameters():
         raise FileNotFoundError('there is no config json file')
     hps = Params(hps_path)
     args.__dict__.update(hps.dict)
+    if args.mode == 'test':
+        args.batch_size = 1
     return args
 
 
@@ -25,10 +27,10 @@ def main():
     director = Director(args)
     if args.mode == 'train':
         director.train()
-    elif args.mode == 'eval':
-        director.eval()
-    elif args.mode == 'sample':
-        director.sample()
+    elif args.mode == 'test':
+        director.test()
+    else:
+        raise ValueError('mode is illegal, has to be one of train or test')
 
 
 if __name__ == '__main__':

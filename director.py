@@ -11,6 +11,7 @@ from modules.data_loader.data_loader import DataLoaderProducer
 from modules.data_loader.utils import SpecialToken
 from modules.decoder.vanilla import DecoderRNN
 from modules.decoder.attention import AttnDecoderRNN
+from modules.data_loader.utils import tensor_from_sentence, add_padding
 
 from utils import set_logger, log, RunningAverage
 
@@ -21,9 +22,9 @@ class Director:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.hps = hps
 
-        dl_producer = DataLoaderProducer(max_length=hps.max_length, data_dir=hps.data_dir, mode=hps.s2t)
-        self.src_language, self.tgt_language, self.dl = dl_producer.prepare_data_loader(batch_size=hps.batch_size,
-                                                                                        num_workers=hps.num_workers)
+        self.dl_producer = DataLoaderProducer(max_length=hps.max_length, data_dir=hps.data_dir, mode=hps.s2t)
+        self.src_language, self.tgt_language, self.dl = self.dl_producer.prepare_data_loader(batch_size=hps.batch_size,
+                                                                                             num_workers=hps.num_workers)
         self.encoder = EncoderRNN(batch_size=hps.batch_size, input_vocabulary_size=self.src_language.n_words,
                                   hidden_size=hps.hidden_size).to(self.device)
         self.decoder = self.get_decoder().to(self.device)
@@ -152,3 +153,48 @@ class Director:
         self.encoder.load_state_dict(state_dict['encoder'])
         self.decoder.load_state_dict(state_dict['decoder'])
         log('- load ckpts from global step {}'.format(self.global_step))
+
+    def test(self):
+        log_dir = os.path.join(self.hps.model_dir, 'logs')
+        os.makedirs(log_dir, exist_ok=True)
+
+        set_logger(os.path.join(log_dir, 'test.log'), terminal=False)
+        self.load_state_dict()
+        src_language, tgt_language, pairs = self.dl_producer.prepare_data()
+
+        for i in range(self.hps.sample_num):
+            pair = random.choice(pairs)
+            log('> ' + pair[0])
+            log('= ' + pair[1])
+            output_words = self.evaluate(src_language, tgt_language, pair[0])
+            output_sentence = ' '.join(output_words)
+            log('< ' + output_sentence)
+            log('')
+
+    def evaluate(self, input_lang, output_lang, sentence):
+        with torch.no_grad():
+            input_tensor = tensor_from_sentence(input_lang, sentence)
+            input_tensor, _ = add_padding(input_tensor, self.hps.max_length)
+            input_tensor = torch.tensor(input_tensor, dtype=torch.long).to(self.device)
+            encoder_init_hidden = self.encoder.init_hidden(self.device)
+
+            encoder_output, encoder_final_hidden = self.encoder(input_tensor, encoder_init_hidden)
+
+            decoder_input = torch.tensor([[SpecialToken.SOS_token]], device=self.device)
+
+            decoder_hidden = encoder_final_hidden
+
+            decoded_words = []
+
+            for di in range(self.hps.max_length):
+                decoder_output, decoder_hidden, attn_weights = self.decoder(decoder_input, decoder_hidden,
+                                                                            encoder_output)
+                topv, topi = decoder_output.topk(1)
+                if topi.item() == SpecialToken.EOS_token:
+                    # decoded_words.append('<EOS>')
+                    break
+                else:
+                    decoded_words.append(output_lang.index2word[topi.item()])
+                decoder_input = topi.squeeze().detach()
+
+            return decoded_words
