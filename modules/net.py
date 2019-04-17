@@ -39,7 +39,7 @@ class DecoderRNN(nn.Module):
         return output, hidden
 
     def init_hidden(self, device):
-        return torch.zeros(1, 1, self.hidden_size, device=device)
+        return torch.zeros(1, self.batch_size, self.hidden_size, device=device)
 
 
 class AttnDecoderRNN(nn.Module):
