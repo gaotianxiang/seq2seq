@@ -65,6 +65,10 @@ class Director:
 
         criterion = nn.NLLLoss(reduce=False)
 
+        if self.hps.resume:
+            log('- load ckpts...')
+            self.load_state_dict()
+
         for epoch in trange(epochs, desc='epochs'):
             with tqdm(total=len(training_pairs)) as progress_bar:
                 for language_pair, mask_pair in training_pairs:
@@ -83,7 +87,7 @@ class Director:
                             state = {
                                 'encoder': self.encoder.state_dict(),
                                 'decoder': self.decoder.state_dict(),
-                                'global_step':self.global_step,
+                                'global_step': self.global_step,
                                 'epoch': epoch
                             }
                             torch.save(state, os.path.join(ckpt_dir, 'best.pth.tar'))
@@ -138,3 +142,13 @@ class Director:
         decoder_optimizer.step()
 
         return loss
+
+    def load_state_dict(self):
+        ckpt_path = os.path.join(self.hps.model_dir, 'ckpts', 'best.pth.tar')
+        if not os.path.exists(ckpt_path):
+            raise FileNotFoundError('- no ckpt file found')
+        state_dict = torch.load(ckpt_path)
+        self.global_step = state_dict['global_step']
+        self.encoder.load_state_dict(state_dict['encoder'])
+        self.decoder.load_state_dict(state_dict['decoder'])
+        log('- load ckpts from global step {}'.format(self.global_step))
