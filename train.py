@@ -9,7 +9,7 @@ from torch import optim
 from tensorboardX import SummaryWriter
 
 from utils import RunningAverage, Params, set_logger, log
-from modules.net import EncoderRNN, DecoderRNN
+from modules.net import EncoderRNN, DecoderRNN, AttnDecoderRNN
 from build_dataset import SOS_token
 from modules.data_loader import fetch_data_loader
 
@@ -112,7 +112,7 @@ def train_iters(args,
                     loss_avg.reset()
 
                 progress_bar.set_postfix(loss_avg=loss_avg.avg)
-                progress_bar.update()
+                progress_bar.update(args.batch_size)
 
 
 def main(args):
