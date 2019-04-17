@@ -4,7 +4,7 @@ import numpy as np
 
 from utils import tensor_from_pair
 from torch.utils import data as data
-from build_dataset import prepare_data
+from modules.data_loader.build_dataset import prepare_data
 
 
 class Fra2Eng(data.Dataset):

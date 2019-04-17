@@ -10,7 +10,7 @@ from tensorboardX import SummaryWriter
 
 from utils import RunningAverage, Params, set_logger, log
 from modules.net import EncoderRNN, DecoderRNN, AttnDecoderRNN
-from build_dataset import SOS_token
+from modules.data_loader.build_dataset import SOS_token
 from modules.data_loader import fetch_data_loader
 
 

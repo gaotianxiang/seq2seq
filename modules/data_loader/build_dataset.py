@@ -3,10 +3,6 @@ import re
 import pickle
 import os
 
-SOS_token = 1
-EOS_token = 2
-Pad_token = 0
-
 
 class Language:
     def __init__(self, name):

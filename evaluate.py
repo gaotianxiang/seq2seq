@@ -5,8 +5,8 @@ import os
 import logging
 
 from modules.net import EncoderRNN, DecoderRNN, AttnDecoderRNN
-from build_dataset import SOS_token, EOS_token
-from build_dataset import prepare_data, Language
+from modules.data_loader.build_dataset import SOS_token, EOS_token
+from modules.data_loader.build_dataset import prepare_data, Language
 from utils import tensor_from_sentence
 from utils import Params, set_logger
 from modules.data_loader import add_padding

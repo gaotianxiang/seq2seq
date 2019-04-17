@@ -1,6 +1,4 @@
-import torch
-
-from build_dataset import Language, EOS_token, SOS_token
+from modules.data_loader.build_dataset import Language, EOS_token
 import json
 import logging
 from tqdm import tqdm
