@@ -45,12 +45,12 @@ def train(args,
 
     if use_teacher_forcing:
         for di in range(sentence_length):
-            decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
+            decoder_output, decoder_hidden, _ = decoder(decoder_input, decoder_hidden, encoder_output)
             loss += torch.sum(criterion(decoder_output, target_tensors[di]) * target_masks[di])
             decoder_input = target_tensors[di]
     else:
         for di in range(sentence_length):
-            decoder_output, decoder_hidden = decoder(decoder_input, decoder_hidden)
+            decoder_output, decoder_hidden, _ = decoder(decoder_input, decoder_hidden, encoder_output)
             topv, topi = decoder_output.topk(1)
             decoder_input = topi.squeeze().detach()
             loss += torch.sum(criterion(decoder_output, target_tensors[di]) * target_masks[di])
@@ -68,7 +68,6 @@ def train_iters(args,
                 encoder: EncoderRNN,
                 decoder: DecoderRNN,
                 pairs):
-
     epochs = args.num_epochs
     print_every = args.print_every
     log_every = args.log_summary_every
@@ -112,7 +111,7 @@ def train_iters(args,
                     loss_avg.reset()
 
                 progress_bar.set_postfix(loss_avg=loss_avg.avg)
-                progress_bar.update(args.batch_size)
+                progress_bar.update()
 
 
 def main(args):
@@ -124,15 +123,16 @@ def main(args):
 
     input_lang, output_lang, pairs = fetch_data_loader(args)
     encoder1 = EncoderRNN(input_lang.n_words, batch_size=args.batch_size, hidden_size=args.hidden_size).to(device)
-    decoder1 = DecoderRNN(output_lang.n_words, batch_size=args.batch_size, hidden_size=args.hidden_size).to(device)
-
+    # decoder1 = DecoderRNN(output_lang.n_words, batch_size=args.batch_size, hidden_size=args.hidden_size).to(device)
+    decoder1 = AttnDecoderRNN(output_lang.n_words, batch_size=args.batch_size, hidden_size=args.hidden_size,
+                              dropout_rate=args.dropout_rate, max_length=args.max_length).to(device)
     train_iters(args, encoder1, decoder1, pairs=pairs)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', default='0', type=str)
-    parser.add_argument('--model_dir', default='experiments/base_model', type=str)
+    parser.add_argument('--model_dir', '--md', default='experiments/base_model', type=str)
     args = parser.parse_args()
 
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu

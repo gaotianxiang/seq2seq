@@ -8,5 +8,6 @@
   "learning_rate": 0.001,
   "num_epochs": 10,
   "print_every": 10,
-  "log_summary_every": 10
+  "log_summary_every": 10,
+  "dropout_rate": 0.5
 }
