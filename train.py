@@ -115,7 +115,7 @@ def train_iters(args,
 
 
 def main(args):
-    params_path = os.path.join(args.model_dir, 'params.json')
+    params_path = os.path.join(args.model_dir, 'config.json')
     assert os.path.exists(params_path), 'no json configuration file was found at {}'.format(params_path)
     hps = Params(params_path)
     args.__dict__.update(hps.dict)

@@ -13,12 +13,12 @@ class DecoderRNN(nn.Module):
         self.out = nn.Linear(self.hidden_size, output_vocabulary_size)
         self.softmax = nn.LogSoftmax(dim=1)
 
-    def forward(self, input, hidden):
+    def forward(self, input, hidden, encoder_output=None):
         output = self.embedding(input).view(1, self.batch_size, self.hidden_size)
         output = F.relu(output)
         output, hidden = self.gru(output, hidden)
         output = self.softmax(self.out(output[0]))
-        return output, hidden
+        return output, hidden, None
 
     def init_hidden(self, device):
         return torch.zeros(1, self.batch_size, self.hidden_size, device=device)
