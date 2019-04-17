@@ -1,13 +1,90 @@
 import random
 import torch
 import numpy as np
+import os
+import pickle
 
-from utils import tensor_from_pair
 from torch.utils import data as data
-from modules.data_loader.build_dataset import prepare_data
+from .utils import normalize_string, Language, SpecialToken, tensor_from_pair, add_padding_pairs
 
 
-class Fra2Eng(data.Dataset):
+class DataLoaderProducer:
+    def __init__(self, max_length, data_dir, mode='e2f'):
+        self.max_length = max_length
+        self.data_dir = data_dir
+        self.mode = mode
+        # self.src_language, self.tgt_language, self.pairs = self.read_dataset()
+
+    @property
+    def mode(self):
+        return self.mode
+
+    @mode.setter
+    def mode(self, mode):
+        if mode not in ['e2f', 'f2e']:
+            raise ValueError('mode has to be one of e2f or f2e')
+        self.mode = mode
+
+    def read_dataset(self):
+        cache_path = os.path.join(self.data_dir, 'fra-eng.preprocess')
+        if os.path.exists(cache_path):
+            print('cache hit, read from cache...')
+            pkl = pickle.load(open(cache_path, 'rb'))
+            return pkl['input_lang'], pkl['output_lang'], pkl['pairs']
+        print('cache miss...')
+        print('reading lines...')
+        lines = open('./data/fra-eng/fra.txt').readlines()
+
+        pairs = [[normalize_string(s) for s in l.split('\t')] for l in lines]
+
+        if self.mode == 'f2e':
+            pairs = [list(reversed(p)) for p in pairs]
+            src_language = Language('French')
+            tgt_language = Language('English')
+        else:
+            src_language = Language('English')
+            tgt_language = Language('French')
+
+        pkl = {'src_language': src_language, 'tgt_language': tgt_language, 'pairs': pairs}
+        pickle.dump(pkl, open(cache_path, 'wb'))
+        print('cache stored...')
+
+        return src_language, tgt_language, pairs
+
+    def filter_pairs(self, pairs):
+        return [pair for pair in pairs if self.filter_pair(pair)]
+
+    def filter_pair(self, p):
+        return len(p[0].split(' ')) < self.max_length and len(p[1].split(' ')) < self.max_length \
+               and p[1].startswith(SpecialToken.eng_prefixes)
+
+    def prepare_data(self):
+        src_language, tgt_language, pairs = self.read_dataset()
+        print('read {} sentence pairs'.format(len(pairs)))
+        pairs = self.filter_pairs(pairs)
+        print('trimmed to {} sentence pairs'.format(len(pairs)))
+        print('counting words...')
+        for pair in pairs:
+            src_language.add_sentence(pair[0])
+            tgt_language.add_sentence(pair[1])
+        print('words counting done')
+        print(src_language.name, src_language.n_words)
+        print(tgt_language.name, tgt_language.n_words)
+        return src_language, tgt_language, pairs
+
+    def prepare_data_loader(self, batch_size, num_workers):
+        src_language, tgt_language, pairs = self.prepare_data()
+        print(random.choice(pairs))
+
+        pairs = [tensor_from_pair(src_language, tgt_language, pair) for pair in pairs]
+        pairs, masks = add_padding_pairs(pairs, self.max_length)
+        dtst = Src2Tgt(pairs, masks)
+        pairs = data.DataLoader(dtst, batch_size=batch_size, shuffle=True, num_workers=num_workers,
+                                drop_last=True)
+        return src_language, tgt_language, pairs
+
+
+class Src2Tgt(data.Dataset):
     def __init__(self, pairs, masks):
         super().__init__()
         assert np.shape(pairs) == np.shape(masks)
@@ -19,66 +96,3 @@ class Fra2Eng(data.Dataset):
 
     def __getitem__(self, idx):
         return torch.tensor(self.fra2eng_pairs[idx], dtype=torch.long), torch.tensor(self.masks[idx], dtype=torch.float)
-
-
-def add_padding(sentence: list, max_length):
-    """according to max_length add padding to sentence
-
-    Args:
-        sentence: list of indices of words
-        max_length: integer maximum length of sentence
-
-    Returns:
-        a padded sentence eg. [3, 24, 45, 2, 0] if max_length = 5
-        a mask (list) which has 1's at normal word entries and 0's at PAD entries e.g. [1, 1, 1, 1, 0]
-    """
-    current_length = len(sentence)
-    mask = np.zeros(max_length)
-    sentence = sentence + [0] * (max_length - current_length)
-    mask[:current_length] = 1
-    return sentence, mask
-
-
-def add_padding_pairs(pairs, args):
-    """add paddings to list of language pairs
-
-    Args:
-        pairs: list of lists [ [torch.tensor, torch.tensor], [torch.tensor, torch.tensor], ...]
-            each torch.tensor contains list of long int, which is the index of words
-        args: contain all hyper parameters
-
-    Returns:
-        padded pairs
-        corresponding masks
-    """
-    max_length = args.max_length
-    padded_pairs = []
-    masks = []
-    for lang1, lang2 in pairs:
-        lang1, mask_lang1 = add_padding(lang1, max_length)
-        lang2, mask_lang2 = add_padding(lang2, max_length)
-        padded_pairs.append([lang1, lang2])
-        masks.append([mask_lang1, mask_lang2])
-    return padded_pairs, masks
-
-
-def fetch_data_loader(args):
-    """fetch a pytorch dataloader
-
-    Args:
-        args: the namespace of hyperparameters
-
-    Returns:
-        input_lang: input language class object with word2index... updated
-        output_lang: output language class object with word2index... updated
-        pairs: a pytorch dataloader which generate batches of language padded pairs and corresponding masks
-    """
-    input_lang, output_lang, pairs = prepare_data('eng', 'fra', args, reverse=True)
-    print(random.choice(pairs))
-
-    pairs = [tensor_from_pair(input_lang, output_lang, pair) for pair in pairs]
-    pairs, masks = add_padding_pairs(pairs, args)
-    dtst = Fra2Eng(pairs, masks)
-    pairs = data.DataLoader(dtst, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers,
-                            drop_last=True)
-    return input_lang, output_lang, pairs
