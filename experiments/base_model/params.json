@@ -9,5 +9,8 @@
   "num_epochs": 10,
   "print_every": 10,
   "log_summary_every": 10,
-  "dropout_rate": 0.5
+  "dropout_rate": 0.5,
+  "mode": "f2e",
+  "data_dir": "./data",
+  "decoder_type": "vanilla"
 }
