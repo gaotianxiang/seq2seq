@@ -17,23 +17,23 @@ class DataLoaderProducer:
 
     @property
     def mode(self):
-        return self.mode
+        return self._mode
 
     @mode.setter
     def mode(self, mode):
         if mode not in ['e2f', 'f2e']:
             raise ValueError('mode has to be one of e2f or f2e')
-        self.mode = mode
+        self._mode = mode
 
     def read_dataset(self):
         cache_path = os.path.join(self.data_dir, 'fra-eng.preprocess')
         if os.path.exists(cache_path):
             print('cache hit, read from cache...')
             pkl = pickle.load(open(cache_path, 'rb'))
-            return pkl['input_lang'], pkl['output_lang'], pkl['pairs']
+            return pkl['src_language'], pkl['tgt_language'], pkl['pairs']
         print('cache miss...')
         print('reading lines...')
-        lines = open('./data/fra-eng/fra.txt').readlines()
+        lines = open(os.path.join(self.data_dir, 'fra.txt')).readlines()
 
         pairs = [[normalize_string(s) for s in l.split('\t')] for l in lines]
 

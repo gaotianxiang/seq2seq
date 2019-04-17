@@ -21,12 +21,12 @@ class Director:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.hps = hps
 
-        dl_producer = DataLoaderProducer(max_length=hps.max_length, data_dir=hps.data_dir, mode=hps.mode)
+        dl_producer = DataLoaderProducer(max_length=hps.max_length, data_dir=hps.data_dir, mode=hps.s2t)
         self.src_language, self.tgt_language, self.dl = dl_producer.prepare_data_loader(batch_size=hps.batch_size,
                                                                                         num_workers=hps.num_workers)
         self.encoder = EncoderRNN(batch_size=hps.batch_size, input_vocabulary_size=self.src_language.n_words,
-                                  hidden_size=hps.hidden_size)
-        self.decoder = self.get_decoder()
+                                  hidden_size=hps.hidden_size).to(self.device)
+        self.decoder = self.get_decoder().to(self.device)
         self.global_step = 0
 
     def get_decoder(self):

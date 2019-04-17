@@ -1,4 +1,4 @@
-from modules.data_loader.build_dataset import Language, EOS_token
+from modules.data_loader.build_dataset import Language
 import json
 import logging
 from tqdm import tqdm
@@ -82,19 +82,3 @@ def set_logger(log_path, terminal=True):
 def log(msg):
     logging.info(msg)
     tqdm.write(msg)
-
-
-def indexes_from_sentence(lang: Language, sentence: str):
-    return [lang.word2index[word] for word in sentence.split(' ')]
-
-
-def tensor_from_sentence(lang: Language, sentence: str):
-    indexes = indexes_from_sentence(lang, sentence)
-    indexes.append(EOS_token)
-    return indexes
-
-
-def tensor_from_pair(input_lang: Language, output_lang: Language, pair):
-    input_tensor = tensor_from_sentence(input_lang, pair[0])
-    output_tensor = tensor_from_sentence(output_lang, pair[1])
-    return input_tensor, output_tensor
