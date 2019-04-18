@@ -71,6 +71,7 @@ class Director:
             self.load_state_dict()
 
         for epoch in trange(epochs, desc='epochs'):
+            loss_avg.reset()
             with tqdm(total=len(training_pairs)) as progress_bar:
                 for language_pair, mask_pair in training_pairs:
                     language_pair, mask_pair = language_pair.to(self.device), mask_pair.to(self.device)
@@ -81,21 +82,21 @@ class Director:
                     if self.global_step % log_every == 0:
                         summary_writer.add_scalar('loss_value', loss, global_step=self.global_step)
                     if self.global_step % print_every == 0:
-                        log('# of iterations: {}, loss average: {:.3f}'.format(self.global_step, loss_avg.avg))
-                        if loss_avg.avg < current_best_loss:
-                            log('new best loss average found, saving modules...')
-                            current_best_loss = loss_avg.avg
-                            state = {
-                                'encoder': self.encoder.state_dict(),
-                                'decoder': self.decoder.state_dict(),
-                                'global_step': self.global_step,
-                                'epoch': epoch
-                            }
-                            torch.save(state, os.path.join(ckpt_dir, 'best.pth.tar'))
-                        loss_avg.reset()
+                        log('global step: {}, loss average: {:.3f}'.format(self.global_step, loss_avg()))
 
-                    progress_bar.set_postfix(loss_avg=loss_avg.avg)
+                    progress_bar.set_postfix(loss_avg=loss_avg())
                     progress_bar.update()
+            if loss_avg() < current_best_loss:
+                log('new best loss average found, saving modules...')
+                current_best_loss = loss_avg()
+                state = {
+                    'encoder': self.encoder.state_dict(),
+                    'decoder': self.decoder.state_dict(),
+                    'global_step': self.global_step,
+                    'epoch': epoch,
+                    'loss_avg': loss_avg()
+                }
+                torch.save(state, os.path.join(ckpt_dir, 'best.pth.tar'))
 
     def train_single(self,
                      language_pair,

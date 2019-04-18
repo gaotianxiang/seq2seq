@@ -1,4 +1,3 @@
-from modules.data_loader.build_dataset import Language
 import json
 import logging
 from tqdm import tqdm
@@ -6,18 +5,23 @@ from tqdm import tqdm
 
 class RunningAverage:
     def __init__(self):
-        self.counts = 0
-        self.total_sum = 0
-        self.avg = 0
+        self.count = 0
+        self.total = 0
+
+    def update(self, num):
+        self.count += 1
+        self.total += num
 
     def reset(self):
-        self.counts = 0
-        self.total_sum = 0
+        self.count = 0
+        self.total = 0
 
-    def update(self, val):
-        self.total_sum += val
-        self.counts += 1
-        self.avg = self.total_sum / self.counts
+    def __call__(self, *args, **kwargs):
+        try:
+            avg = self.total / self.count
+        except ZeroDivisionError:
+            avg = 'NaN'
+        return avg
 
 
 class Params:

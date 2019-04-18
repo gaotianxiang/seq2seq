@@ -26,7 +26,7 @@ class DataLoaderProducer:
         self._mode = mode
 
     def read_dataset(self):
-        cache_path = os.path.join(self.data_dir, 'fra-eng.preprocess')
+        cache_path = os.path.join(self.data_dir, '{}.preprocess'.format(self.mode))
         if os.path.exists(cache_path):
             print('cache hit, read from cache...')
             pkl = pickle.load(open(cache_path, 'rb'))
@@ -56,7 +56,7 @@ class DataLoaderProducer:
 
     def filter_pair(self, p):
         return len(p[0].split(' ')) < self.max_length and len(p[1].split(' ')) < self.max_length \
-               and p[1].startswith(SpecialToken.eng_prefixes)
+               # and p[1].startswith(SpecialToken.eng_prefixes)
 
     def prepare_data(self):
         src_language, tgt_language, pairs = self.read_dataset()
