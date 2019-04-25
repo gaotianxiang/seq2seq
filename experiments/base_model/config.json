@@ -12,5 +12,6 @@
   "dropout_rate": 0.5,
   "s2t": "f2e",
   "data_dir": "./data/fra-eng",
-  "decoder_type": "vanilla"
+  "decoder_type": "vanilla",
+  "beam_size": 3
 }
