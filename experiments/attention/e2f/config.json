@@ -10,8 +10,8 @@
   "print_every": 10,
   "log_summary_every": 10,
   "dropout_rate": 0.5,
-  "s2t": "f2e",
+  "s2t": "e2f",
   "data_dir": "./data/fra-eng",
-  "decoder_type": "vanilla",
-  "beam_size": 3
+  "decoder_type": "attention",
+  "beam_size": 0
 }

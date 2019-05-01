@@ -1,0 +1,17 @@
+{
+  "teacher_forcing_ratio": 0.5,
+  "hidden_size": 256,
+  "max_length": 10,
+  "sample_num": 10,
+  "batch_size": 64,
+  "num_workers": 8,
+  "learning_rate": 0.001,
+  "num_epochs": 20,
+  "print_every": 10,
+  "log_summary_every": 10,
+  "dropout_rate": 0.5,
+  "s2t": "f2e",
+  "data_dir": "./data/fra-eng",
+  "decoder_type": "attention",
+  "beam_size": 0
+}

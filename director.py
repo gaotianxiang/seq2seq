@@ -211,26 +211,27 @@ class Director:
 
             if beam_size > 0:
                 dw, attn = self.beam_search(decoder_input, decoder_hidden, encoder_output, output_lang)
-                plt.matshow(np.array(attn))
-                plt.show()
             else:
                 dw, attn = self.greedy_search(decoder_input, decoder_hidden, encoder_output, output_lang)
-                fig = plt.figure()
-                ax = fig.add_subplot(111)
-                cax = ax.matshow(attn[:, 0:len(sentence.split(' ')) + 1], cmap='hot')
-                fig.colorbar(cax)
-                ax.set_xticklabels([''] + sentence.split(' ') + ['EOS'], rotation=90)
-                ax.set_yticklabels([''] + dw)
-                ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
-                ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
-                plt.savefig(os.path.join(self.heat_map_dir, '{}.png'.format('_'.join(sentence.split(' ')))))
+            if self.hps.heatmap:
+                self.plt_heatmap(attn, sentence, dw)
 
             return dw
 
+    def plt_heatmap(self, attn, sentence, dw):
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        cax = ax.matshow(attn[:, 0:len(sentence.split(' ')) + 1], cmap='hot')
+        fig.colorbar(cax)
+        ax.set_xticklabels([''] + sentence.split(' ') + ['EOS'], rotation=90)
+        ax.set_yticklabels([''] + dw)
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
+        plt.savefig(os.path.join(self.heat_map_dir, '{}.png'.format('_'.join(sentence.split(' ')))))
+
     def beam_search(self, decoder_input, decoder_hidden, encoder_output, output_lang):
         beam_size = self.hps.beam_size
-        beam_partial_sentences = [[list(), decoder_input, decoder_hidden, 0, 0]] * beam_size
-        attn_weights_all = []
+        beam_partial_sentences = [[[], decoder_input, decoder_hidden, 0, 0, []]] * beam_size
         for di in range(self.hps.max_length):
             if di == 0:
                 decoder_output, decoder_hidden, attn_weights = self.decoder(decoder_input, decoder_hidden,
@@ -241,10 +242,10 @@ class Director:
                      topi[k].detach(),
                      decoder_hidden,
                      topv[k].item(),
-                     1 if topi[k].item() == SpecialToken.EOS_token else 0]
+                     1 if topi[k].item() == SpecialToken.EOS_token else 0,
+                     [attn_weights.squeeze().to('cpu').numpy()]]
                     for k in range(beam_size)
                 ]
-                attn_weights_all.append(attn_weights.squeeze().to('cpu').numpy())
             else:
                 for i in range(beam_size):
                     if beam_partial_sentences[i][4] == 1:
@@ -259,14 +260,14 @@ class Director:
                          topi[k].detach(),
                          decoder_hidden,
                          beam_partial_sentences[i][3] + topv[k].item(),
-                         1 if topi[k].item() == SpecialToken.EOS_token else 0]
+                         1 if topi[k].item() == SpecialToken.EOS_token else 0,
+                         beam_partial_sentences[i][5] + [attn_weights.squeeze().to('cpu').numpy()]]
                         for k in range(beam_size)]
-                    attn_weights_all.append(attn_weights.squeeze().to('cpu').numpy())
                     beam_partial_sentences += local_beam_partial_sentences
                 beam_partial_sentences = beam_partial_sentences[beam_size:]
                 beam_partial_sentences = sorted(beam_partial_sentences, key=lambda x: x[3], reverse=True)[
                                          0:beam_size]
-        return beam_partial_sentences[0][0], attn_weights_all[0:-1]
+        return beam_partial_sentences[0][0], np.array(beam_partial_sentences[0][5])
 
     def greedy_search(self, decoder_input, decoder_hidden, encoder_output, output_lang):
         decoded_words = []
