@@ -5,6 +5,9 @@ import torch.nn as nn
 from tensorboardX import SummaryWriter
 from tqdm import trange, tqdm
 import random
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+import numpy as np
 
 from modules.encoder.encoder import EncoderRNN
 from modules.data_loader.data_loader import DataLoaderProducer
@@ -31,7 +34,7 @@ class Director:
         self.global_step = 0
 
     def get_decoder(self):
-        if self.hps.decoder_type == 'attn':
+        if self.hps.decoder_type == 'attention':
             return AttnDecoderRNN(output_vocabulary_size=self.tgt_language.n_words, batch_size=self.hps.batch_size,
                                   hidden_size=self.hps.hidden_size, dropout_rate=self.hps.dropout_rate,
                                   max_length=self.hps.max_length)
@@ -58,6 +61,12 @@ class Director:
         summ_dir = os.path.join(self.hps.model_dir, 'summary')
         os.makedirs(summ_dir, exist_ok=True)
         return summ_dir
+
+    @property
+    def heat_map_dir(self):
+        heat_map_dir = os.path.join(self.hps.model_dir, 'heat_map')
+        os.makedirs(heat_map_dir, exist_ok=True)
+        return heat_map_dir
 
     def train(self):
         set_logger(os.path.join(self.log_dir, 'train.log'), terminal=False)
@@ -182,11 +191,9 @@ class Director:
             log('> ' + pair[0])
             log('= ' + pair[1])
             output_words = self.evaluate(src_language, tgt_language, pair[0])
-            # output_sentence = ' '.join(output_words)
-            output_sentence = output_words
-            print(output_sentence)
-            # log('< ' + output_sentence)
-            # log('')
+            output_sentence = ' '.join(output_words)
+            log('< ' + output_sentence)
+            log('')
 
     def evaluate(self, input_lang, output_lang, sentence):
         beam_size = self.hps.beam_size
@@ -202,57 +209,78 @@ class Director:
 
             decoder_hidden = encoder_final_hidden
 
-            decoded_words = []
+            if beam_size > 0:
+                dw, attn = self.beam_search(decoder_input, decoder_hidden, encoder_output, output_lang)
+                plt.matshow(np.array(attn))
+                plt.show()
+            else:
+                dw, attn = self.greedy_search(decoder_input, decoder_hidden, encoder_output, output_lang)
+                fig = plt.figure()
+                ax = fig.add_subplot(111)
+                cax = ax.matshow(attn[:, 0:len(sentence.split(' ')) + 1], cmap='hot')
+                fig.colorbar(cax)
+                ax.set_xticklabels([''] + sentence.split(' ') + ['EOS'], rotation=90)
+                ax.set_yticklabels([''] + dw)
+                ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+                ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
+                plt.savefig(os.path.join(self.heat_map_dir, '{}.png'.format('_'.join(sentence.split(' ')))))
 
-            beam_partial_sentences = [[list(), decoder_input, decoder_hidden, 0, 0]] * beam_size
-            for di in range(self.hps.max_length):
-                if di == 0:
-                    decoder_output, decoder_hidden, attn_weights = self.decoder(decoder_input, decoder_hidden,
+            return dw
+
+    def beam_search(self, decoder_input, decoder_hidden, encoder_output, output_lang):
+        beam_size = self.hps.beam_size
+        beam_partial_sentences = [[list(), decoder_input, decoder_hidden, 0, 0]] * beam_size
+        attn_weights_all = []
+        for di in range(self.hps.max_length):
+            if di == 0:
+                decoder_output, decoder_hidden, attn_weights = self.decoder(decoder_input, decoder_hidden,
+                                                                            encoder_output)
+                topv, topi = decoder_output.squeeze().topk(beam_size)
+                beam_partial_sentences = [
+                    [[output_lang.index2word[topi[k].item()]],
+                     topi[k].detach(),
+                     decoder_hidden,
+                     topv[k].item(),
+                     1 if topi[k].item() == SpecialToken.EOS_token else 0]
+                    for k in range(beam_size)
+                ]
+                attn_weights_all.append(attn_weights.squeeze().to('cpu').numpy())
+            else:
+                for i in range(beam_size):
+                    if beam_partial_sentences[i][4] == 1:
+                        beam_partial_sentences.append(beam_partial_sentences[i])
+                        continue
+                    decoder_output, decoder_hidden, attn_weights = self.decoder(beam_partial_sentences[i][1],
+                                                                                beam_partial_sentences[i][2],
                                                                                 encoder_output)
                     topv, topi = decoder_output.squeeze().topk(beam_size)
-                    beam_partial_sentences = [
-                        [list(output_lang.index2word[topi[k].item()]),
+                    local_beam_partial_sentences = [
+                        [beam_partial_sentences[i][0] + [output_lang.index2word[topi[k].item()]],
                          topi[k].detach(),
                          decoder_hidden,
-                         topv[k].item(),
+                         beam_partial_sentences[i][3] + topv[k].item(),
                          1 if topi[k].item() == SpecialToken.EOS_token else 0]
-                        for k in range(beam_size)
-                    ]
-                else:
-                    for i in range(beam_size):
-                        if beam_partial_sentences[i][4] == 1:
-                            beam_partial_sentences.append(beam_partial_sentences[i])
-                            continue
-                        decoder_output, decoder_hidden, attn_weights = self.decoder(beam_partial_sentences[i][1],
-                                                                                    beam_partial_sentences[i][2],
-                                                                                    encoder_output)
-                        topv, topi = decoder_output.squeeze().topk(beam_size)
-                        local_beam_partial_sentences = [
-                            [beam_partial_sentences[i][0] + [output_lang.index2word[topi[k].item()]],
-                             topi[k].detach(),
-                             decoder_hidden,
-                             beam_partial_sentences[i][3] + topv[k].item(),
-                             1 if topi[k].item() == SpecialToken.EOS_token else 0]
-                            for k in range(beam_size)]
-                        # print(local_beam_partial_sentences)
-                        # beam_partial_sentences.pop(i)
-                        beam_partial_sentences += local_beam_partial_sentences
-                    beam_partial_sentences = beam_partial_sentences[beam_size:]
-                    beam_partial_sentences = sorted(beam_partial_sentences, key=lambda x: x[3], reverse=True)[
-                                             0:beam_size]
+                        for k in range(beam_size)]
+                    attn_weights_all.append(attn_weights.squeeze().to('cpu').numpy())
+                    beam_partial_sentences += local_beam_partial_sentences
+                beam_partial_sentences = beam_partial_sentences[beam_size:]
+                beam_partial_sentences = sorted(beam_partial_sentences, key=lambda x: x[3], reverse=True)[
+                                         0:beam_size]
+        return beam_partial_sentences[0][0], attn_weights_all[0:-1]
 
-                # decoder_output, decoder_hidden, attn_weights = self.decoder(decoder_input, decoder_hidden,
-                #                                                             encoder_output)
-                # topv, topi = decoder_output.topk(1)
-                # if topi.item() == SpecialToken.EOS_token:
-                #     # decoded_words.append('<EOS>')
-                #     break
-                # else:
-                #     decoded_words.append(output_lang.index2word[topi.item()])
-                # decoder_input = topi.squeeze().detach()
-
-            return [beam_partial_sentences[j][0] for j in range(beam_size)]
-
-    def beam_search(self):
-        beam_size = self.hps.beam_size
-
+    def greedy_search(self, decoder_input, decoder_hidden, encoder_output, output_lang):
+        decoded_words = []
+        attn_weights_all = []
+        for di in range(self.hps.max_length):
+            decoder_output, decoder_hidden, attn_weights = self.decoder(decoder_input, decoder_hidden,
+                                                                        encoder_output)
+            topv, topi = decoder_output.topk(1)
+            if topi.item() == SpecialToken.EOS_token:
+                decoded_words.append('EOS')
+                attn_weights_all.append(attn_weights.squeeze().to('cpu').numpy())
+                break
+            else:
+                decoded_words.append(output_lang.index2word[topi.item()])
+            decoder_input = topi.squeeze().detach()
+            attn_weights_all.append(attn_weights.squeeze().to('cpu').numpy())
+        return decoded_words, np.array(attn_weights_all)
