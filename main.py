@@ -10,6 +10,7 @@ def get_parameters():
     parser.add_argument('--model_dir', '--md', default='experiments/base_model', type=str)
     parser.add_argument('--mode', '--m', default='train', type=str)
     parser.add_argument('--resume', '--r', action='store_true')
+    parser.add_argument('--beam_size', '--bs', default=0, type=int)
     args = parser.parse_args()
 
     hps_path = os.path.join(args.model_dir, 'config.json')
