@@ -42,6 +42,6 @@ Optional arguments:
 of beam search.
 - `--heatmap` or `--hm` whether to generate and store the attention weight heat map.
 
-## Credit
+## References
 - [Pytorch official seq2seq tutorial](https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html#sphx-glr-download-intermediate-seq2seq-translation-tutorial-py)
 - [Stanford CS230 code examples](https://cs230-stanford.github.io/project-code-examples.html)
