@@ -16,10 +16,10 @@ def get_parameters():
     if not os.path.exists(hps_path):
         raise FileNotFoundError('there is no config json file')
     hps = Params(hps_path)
-    args.__dict__.update(hps.dict)
-    if args.mode == 'test':
-        args.batch_size = 1
-    return args
+    hps.dict.update(args.__dict__)
+    if hps.mode == 'test':
+        hps.batch_size = 1
+    return hps
 
 
 def main():
