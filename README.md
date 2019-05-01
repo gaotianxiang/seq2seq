@@ -38,7 +38,7 @@ python main.py --gpu [gpu_id] --model_dir [model_dir] --mode test
 
 Optional arguments:
 
-- `--beam_size` or `--bs` whether use beam search. Greedy search if the value is 0. Otherwise, the value is the width 
+- `--beam_size [value]` or `--bs [value]` whether use beam search. Greedy search if the value is 0. Otherwise, the value is the width 
 of beam search.
 - `--heatmap` or `--hm` whether to generate and store the attention weight heat map.
 
