@@ -11,6 +11,7 @@ def get_parameters():
     parser.add_argument('--mode', '--m', default='train', type=str)
     parser.add_argument('--resume', '--r', action='store_true')
     parser.add_argument('--beam_size', '--bs', default=0, type=int)
+    parser.add_argument('--heatmap', '--hm', action='store_true')
     args = parser.parse_args()
 
     hps_path = os.path.join(args.model_dir, 'config.json')
