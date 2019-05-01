@@ -41,14 +41,26 @@ class Director:
         else:
             raise ValueError('decoder type is illegal')
 
-    def train(self):
+    @property
+    def log_dir(self):
         log_dir = os.path.join(self.hps.model_dir, 'logs')
-        ckpt_dir = os.path.join(self.hps.model_dir, 'ckpts')
-        summ_dir = os.path.join(self.hps.model_dir, 'summary')
-        os.makedirs(ckpt_dir, exist_ok=True)
         os.makedirs(log_dir, exist_ok=True)
+        return log_dir
+
+    @property
+    def ckpt_dir(self):
+        ckpt_dir = os.path.join(self.hps.model_dir, 'ckpts')
+        os.makedirs(ckpt_dir, exist_ok=True)
+        return ckpt_dir
+
+    @property
+    def summ_dir(self):
+        summ_dir = os.path.join(self.hps.model_dir, 'summary')
         os.makedirs(summ_dir, exist_ok=True)
-        set_logger(os.path.join(log_dir, 'train.log'), terminal=False)
+        return summ_dir
+
+    def train(self):
+        set_logger(os.path.join(self.log_dir, 'train.log'), terminal=False)
 
         epochs = self.hps.num_epochs
         print_every = self.hps.print_every
@@ -56,7 +68,7 @@ class Director:
         lr = self.hps.learning_rate
 
         loss_avg = RunningAverage()
-        summary_writer = SummaryWriter(log_dir=summ_dir)
+        summary_writer = SummaryWriter(log_dir=self.summ_dir)
         current_best_loss = 1e3
 
         encoder_optimizer = optim.Adam(self.encoder.parameters(), lr=lr)
@@ -96,7 +108,7 @@ class Director:
                     'epoch': epoch,
                     'loss_avg': loss_avg()
                 }
-                torch.save(state, os.path.join(ckpt_dir, 'best.pth.tar'))
+                torch.save(state, os.path.join(self.ckpt_dir, 'best.pth.tar'))
 
     def train_single(self,
                      language_pair,
@@ -156,12 +168,14 @@ class Director:
         log('- load ckpts from global step {}'.format(self.global_step))
 
     def test(self):
-        log_dir = os.path.join(self.hps.model_dir, 'logs')
-        os.makedirs(log_dir, exist_ok=True)
-
-        set_logger(os.path.join(log_dir, 'test.log'), terminal=False)
+        set_logger(os.path.join(self.log_dir, 'test.log'), terminal=False)
         self.load_state_dict()
         src_language, tgt_language, pairs = self.dl_producer.prepare_data()
+        beam_size = self.hps.beam_size
+        if beam_size > 0:
+            log('- beam search, width {}'.format(beam_size))
+        else:
+            log('- greedy search')
 
         for i in range(self.hps.sample_num):
             pair = random.choice(pairs)
@@ -213,10 +227,6 @@ class Director:
                                                                                     beam_partial_sentences[i][2],
                                                                                     encoder_output)
                         topv, topi = decoder_output.squeeze().topk(beam_size)
-                        # print(topv)
-                        # print(topi)
-                        # print(topv[i].item())
-                        # print(beam_partial_sentences[i][0])
                         local_beam_partial_sentences = [
                             [beam_partial_sentences[i][0] + [output_lang.index2word[topi[k].item()]],
                              topi[k].detach(),
@@ -242,3 +252,7 @@ class Director:
                 # decoder_input = topi.squeeze().detach()
 
             return [beam_partial_sentences[j][0] for j in range(beam_size)]
+
+    def beam_search(self):
+        beam_size = self.hps.beam_size
+

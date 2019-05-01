@@ -13,7 +13,7 @@ class AttnDecoderRNN(nn.Module):
         self.batch_size = batch_size
 
         self.embedding = nn.Embedding(output_vocabulary_size, hidden_size)
-        self.attn = nn.Linear(hidden_size * 2, max_length)
+        self.attn = nn.Linear(hidden_size, max_length)
         self.attn_combine = nn.Linear(hidden_size * 2, hidden_size)
         self.dropout = nn.Dropout(dropout_rate)
         self.gru = nn.GRU(hidden_size, hidden_size)
@@ -23,7 +23,7 @@ class AttnDecoderRNN(nn.Module):
         embedded = self.embedding(input).view(1, self.batch_size, self.hidden_size)
         embedded = self.dropout(embedded)
 
-        attn_weights = F.softmax(self.attn(torch.cat((embedded[0], hidden[0]), dim=1)), dim=1)
+        attn_weights = F.softmax(self.attn(hidden[0]), dim=1)
         attn_applied = torch.bmm(attn_weights.unsqueeze(1),
                                  encoder_outputs.transpose(0, 1))
 
